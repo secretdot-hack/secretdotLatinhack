@@ -1,0 +1,5 @@
+Network Name: Moonbase Alpha
+New RPC URL: https://rpc.api.moonbase.moonbeam.network
+Chain ID: 1287
+Currency Symbol: DEV
+Block Explorer URL: https://moonbase.moonscan.io/
