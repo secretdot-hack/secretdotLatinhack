@@ -14,6 +14,9 @@ import { getContract } from "~/utils/contract"
 import { toast } from "react-hot-toast"
 import { ethers, keccak256, toUtf8Bytes } from "ethers";
 import { getSignedContract } from "~/utils/contract";
+import { encrypt } from "@metamask/eth-sig-util";
+import { Buffer } from "buffer";
+import { addPaseoNetwork, isCorrectNetwork } from "~/utils/ether";
 
 export default function SecureMessageModal({
   open,
@@ -29,27 +32,112 @@ export default function SecureMessageModal({
 
   const handleSend = async () => {
     try {
+        if (!window?.ethereum) {
+            toast.error("MetaMask no está disponible");
+            return;
+        }
+
+        // Verificar que estamos en la red correcta antes de enviar
+        const correctNetwork = await isCorrectNetwork();
+        if (!correctNetwork) {
+            toast.loading("Cambiando a la red Paseo...");
+            const switched = await addPaseoNetwork();
+            toast.dismiss();
+            if (!switched) {
+                toast.error("Por favor, cambia manualmente a la red Paseo Asset Hub TestNet en MetaMask");
+                return;
+            }
+            toast.success("Conectado a la red Paseo");
+        }
+
         const contract = getContract();
-        const pubKey = await checkAddress(addresses.trim());
-        if (!pubKey) {
+        const recipientPubKey = await checkAddress(addresses.trim());
+        if (!recipientPubKey) {
             toast.error("No se pudo obtener la clave pública del receptor.");
             return;
         }
 
-        const encryptedMessage = message + pubKey; // Encriptar el mensaje con la clave pública del receptor
+        console.log("Clave pública del destinatario:", recipientPubKey);
+
+        // Encriptar el mensaje usando la librería de MetaMask
+        const encryptedData = encrypt({
+            publicKey: recipientPubKey,
+            data: message,
+            version: 'x25519-xsalsa20-poly1305'
+        });
+
+        // Convertir a string JSON
+        const encryptedMessage = JSON.stringify(encryptedData);
+        console.log("Mensaje encriptado:", encryptedMessage);
+
+        // Crear un hash IPFS-like que será usado tanto en localStorage como en el contrato
+        const timestamp = Date.now().toString();
+        const hashInput = encryptedMessage + timestamp + addresses.trim();
+        const fullHash = ethers.keccak256(ethers.toUtf8Bytes(hashInput));
+        
+        // Formato IPFS-like (Qm + 46 caracteres del hash)
+        const ipfsLikeHash = `Qm${fullHash.slice(2, 48)}`;
+        console.log("Hash IPFS-like:", ipfsLikeHash);
+
+        // Guardar el mensaje cifrado en localStorage usando el hash IPFS-like
+        const storageKey = `secretdot_msg_${ipfsLikeHash}`;
+        localStorage.setItem(storageKey, encryptedMessage);
+        console.log("Mensaje guardado en localStorage con clave:", storageKey);
 
         await window.ethereum.request({ method: "eth_requestAccounts" });
-        const provider = new ethers.BrowserProvider(window.ethereum);
+        const provider = new ethers.BrowserProvider(window.ethereum as any);
         const signer = await provider.getSigner();
         const signedContract = await getSignedContract(signer);
 
-        if (typeof signedContract.SendMessage === "function") {
-            const tx = await signedContract.SendMessage(addresses.trim(), encryptedMessage); // Enviar mensaje al contrato
-            console.log("Transacción enviada:", tx.hash);
+        if (typeof signedContract.send === "function") {
+            console.log("📤 Enviando mensaje a:", addresses.trim());
+            console.log("📤 Hash del mensaje:", ipfsLikeHash);
+            
+            // SecretDot.sol usa send(address to, string calldata h)
+            const tx = await signedContract.send(addresses.trim(), ipfsLikeHash);
+            console.log("✅ Transacción enviada:", tx.hash);
             toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
 
             const receipt = await tx.wait();
-            console.log("Transacción confirmada:", receipt);
+            console.log("✅ Transacción confirmada:", receipt);
+            console.log("📊 Logs de la transacción:", receipt.logs);
+            
+            // Parsear el evento para ver el destinatario
+            if (receipt.logs && receipt.logs.length > 0) {
+                try {
+                    const log = receipt.logs[0];
+                    console.log("📋 Log completo:", log);
+                    console.log("📋 Topics:", log.topics);
+                    console.log("📋 Data:", log.data);
+                    
+                    // Parsear manualmente los topics
+                    // topics[0] = event signature
+                    // topics[1] = sender (indexed)
+                    // topics[2] = recipient (indexed)
+                    if (log.topics && log.topics.length >= 3) {
+                        const sender = ethers.getAddress('0x' + log.topics[1].slice(26));
+                        const recipient = ethers.getAddress('0x' + log.topics[2].slice(26));
+                        
+                        console.log("📨 Evento MessageSent parseado:", {
+                            sender: sender,
+                            recipient: recipient,
+                            destinatarioIntroducido: addresses.trim(),
+                            match: recipient.toLowerCase() === addresses.trim().toLowerCase()
+                        });
+                        
+                        if (recipient.toLowerCase() !== addresses.trim().toLowerCase()) {
+                            console.warn("⚠️ ADVERTENCIA: El destinatario en el evento no coincide con la dirección ingresada");
+                            console.warn(`   Esperado: ${addresses.trim()}`);
+                            console.warn(`   Recibido: ${recipient}`);
+                        } else {
+                            console.log("✅ El destinatario coincide correctamente");
+                        }
+                    }
+                } catch (e) {
+                    console.log("No se pudo parsear el evento:", e);
+                }
+            }
+            
             toast.success("Mensaje enviado exitosamente");
 
             // Limpiar el formulario y cerrar el modal
@@ -57,12 +145,12 @@ export default function SecureMessageModal({
             setMessage("");
             onOpenChange(false);
         } else {
-            toast.error("La función SendMessage no está disponible en el contrato.");
+            toast.error("La función send no está disponible en el contrato.");
             return;
         }
     } catch (error) {
         toast.error("Hubo un error al enviar el mensaje");
-        console.error(error);
+        console.error("Error detallado:", error);
     }
   }
 
@@ -75,9 +163,10 @@ export default function SecureMessageModal({
   const checkAddress = async (address :  string) : Promise<string | undefined> => {
     // validar la direccion ingresada
     const contract = getContract()
-    if (contract.GetUserPubKey) {
+    if (contract.keyOf) {
       try {
-        const pubKey = await contract.GetUserPubKey(address);
+        // SecretDot.sol usa keyOf(address) para obtener la clave pública
+        const pubKey = await contract.keyOf(address);
         console.log("Se encontro el receptor: ", pubKey);
         return pubKey;
       } catch (err) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import SecureMessageModal from "./Secure-Message-Modal"
-import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox } from "lucide-react"
+import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
@@ -12,9 +12,8 @@ import { Avatar, AvatarFallback } from "./ui/avatar"
 import { getContract } from "~/utils/contract"
 import { getSignedContract } from "~/utils/contract"
 import { ethers } from "ethers"
-import { log } from "console"
 import { Toaster, toast } from "react-hot-toast"
-import { privateDecrypt, constants } from "crypto"
+import { addPaseoNetwork, isCorrectNetwork } from "~/utils/ether"
 
 // Simulated data
 const receivedMessages = [
@@ -83,11 +82,35 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<any[]>([]);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
-  useEffect(() => {    // Recupera los datos de la wallet conectada
+  useEffect(() => {    
+    // Recupera los datos de la wallet conectada
     setAccount(localStorage.getItem("secretdot_account"));
     setChainId(localStorage.getItem("secretdot_chainId"));
 
+    // Verifica y cambia a la red Paseo si es necesario
+    const checkAndSwitchNetwork = async () => {
+      try {
+        const correctNetwork = await isCorrectNetwork();
+        if (!correctNetwork) {
+          toast.loading("Cambiando a la red Paseo...");
+          const switched = await addPaseoNetwork();
+          if (switched) {
+            toast.dismiss();
+            toast.success("Conectado a la red Paseo Asset Hub TestNet");
+          } else {
+            toast.dismiss();
+            toast.error("No se pudo cambiar a la red Paseo. Por favor, cámbiala manualmente en MetaMask.");
+          }
+        }
+      } catch (error) {
+        console.error("Error al verificar/cambiar red:", error);
+        toast.error("Error al verificar la red");
+      }
+    };
+
+    checkAndSwitchNetwork();
   }, []);
 
   useEffect(() => {
@@ -126,9 +149,9 @@ export default function Dashboard() {
     const checkPublicKey = async () => {
       const contract = getContract();
     
-      if (contract.GetUserPubKey) {
+      if (contract.keyOf) {
         try {
-          const pubKey = await contract.GetUserPubKey(account);
+          const pubKey = await contract.keyOf(account);
           
           console.log("Clave pública obtenida: ", pubKey);
           console.log("Tipo de pubKey:", typeof pubKey);
@@ -163,6 +186,13 @@ export default function Dashboard() {
     account ? checkPublicKey() : null;
 
   },[account]);
+
+  // Cargar mensajes cuando se tiene la clave pública registrada
+  useEffect(() => {
+    if (hasPublicKey && account) {
+      fetchAndDecryptMessages();
+    }
+  }, [hasPublicKey, account]);
 
 /*
   useEffect(() => {
@@ -204,19 +234,37 @@ export default function Dashboard() {
         return;
       }
 
+      if (!window.ethereum) {
+        toast.error("MetaMask no está disponible");
+        return;
+      }
+
+      // Verificar que estamos en la red correcta
+      const correctNetwork = await isCorrectNetwork();
+      if (!correctNetwork) {
+        toast.loading("Cambiando a la red Paseo...");
+        const switched = await addPaseoNetwork();
+        toast.dismiss();
+        if (!switched) {
+          toast.error("Por favor, cambia manualmente a la red Paseo Asset Hub TestNet en MetaMask");
+          return;
+        }
+        toast.success("Conectado a la red Paseo");
+      }
+
       await window.ethereum.request({ method: "eth_requestAccounts" });
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(window.ethereum as any);
       const signer = await provider.getSigner();
       const signedContract = await getSignedContract(signer);
       
       console.log("Signed Contract:", signedContract);
       
-      if (signedContract.RegisterUserPubKey) {
+      if (signedContract.setKey) {
         console.log("Registrando clave pública en el contrato...");
         
-        // Ejecutar la transacción
-        const tx = await signedContract.RegisterUserPubKey(publicKey);
+        // Ejecutar la transacción - SecretDot.sol usa setKey()
+        const tx = await signedContract.setKey(publicKey);
         console.log("Transacción enviada:", tx.hash);
         toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
         
@@ -229,7 +277,7 @@ export default function Dashboard() {
         setHasPublicKey(true);
         
       } else {
-        console.error("RegisterUserPubKey no está definido en el contrato.");
+        console.error("setKey no está definido en el contrato.");
         toast.error("No se pudo registrar la clave pública en el contrato.");
       }
 
@@ -242,67 +290,117 @@ export default function Dashboard() {
 
   const fetchAndDecryptMessages = async () => {
     try {
-        const contract = getContract();
-        if (!contract.GetMyMessages) {
-            throw new Error("GetMyMessages no está definido en el contrato.");
+        setLoadingMessages(true);
+        
+        if (!window?.ethereum) {
+            console.error("MetaMask no está disponible");
+            toast.error("MetaMask no está disponible");
+            return;
         }
 
-        // Obtener mensajes del receptor desde la blockchain
-        const messages = await contract.GetMyMessages();
-        console.log("Mensajes recibidos:", messages);
+        if (!account) {
+            console.error("No hay cuenta conectada");
+            toast.error("No hay cuenta conectada");
+            return;
+        }
 
-        const decryptedMessages = messages.map((message: any) => {
+        const contract = getContract();
+        if (!contract.inbox) {
+            throw new Error("inbox no está definido en el contrato.");
+        }
+
+        console.log("📥 Consultando mensajes para la dirección:", account);
+
+        // Obtener mensajes del receptor desde la blockchain - SecretDot.sol usa inbox()
+        const messages = await contract.inbox();
+        console.log("📦 Mensajes recibidos desde blockchain:", messages);
+        console.log("📊 Cantidad de mensajes:", messages.length);
+
+        if (messages.length === 0) {
+            console.log("⚠️ No hay mensajes para mostrar");
+            console.log("💡 Tip: Asegúrate de enviar el mensaje a la dirección:", account);
+            setDecryptedMessages([]);
+            toast("No tienes mensajes recibidos", { icon: "ℹ️" });
+            return;
+        }
+
+        // Descifrar cada mensaje usando MetaMask
+        const decryptedMessagesPromises = messages.map(async (message: any) => {
             try {
-                const encryptedMessage = message.ipfsHash;
-                const sender = message.sender;
+                const sender = message.from; // SecretDot.sol usa 'from' en lugar de 'sender'
+                
+                // El ipfs viene como string directo del contrato SecretDot.sol
+                const ipfsHash = message.ipfs;
+                
+                console.log(`Mensaje recibido del contrato:`, message);
+                console.log(`ipfsHash tipo:`, typeof ipfsHash);
+                console.log(`ipfsHash valor:`, ipfsHash);
+                console.log(`Hash procesado: ${ipfsHash}`);
 
-                const privateKey = localStorage.getItem("privateKey");
-                if (!privateKey) {
-                    throw new Error("Clave privada no encontrada.");
+                // Buscar el mensaje cifrado en localStorage
+                // SecretDot.sol guarda el hash directamente como string (no keccak256)
+                const storageKey = `secretdot_msg_${ipfsHash}`;
+                console.log("Buscando mensaje en localStorage con clave:", storageKey);
+                
+                const encryptedMessage = localStorage.getItem(storageKey);
+
+                if (!encryptedMessage) {
+                    console.warn(`❌ Mensaje cifrado no encontrado para hash: ${ipfsHash}`);
+                    console.log(`Total de mensajes en localStorage:`, 
+                        Array.from({length: localStorage.length}, (_, i) => localStorage.key(i))
+                            .filter(k => k && k.startsWith('secretdot_msg_'))
+                    );
+                    return {
+                        sender,
+                        decryptedMessage: "Mensaje no disponible (no encontrado en almacenamiento local)",
+                        timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
+                    };
                 }
 
-                const decryptedMessage = privateDecrypt(
-                    {
-                        key: privateKey,
-                        padding: constants.RSA_PKCS1_PADDING,
-                    },
-                    Buffer.from(encryptedMessage, "base64")
-                );
+                console.log(`✅ Mensaje cifrado recuperado de localStorage`);
 
-                console.log(`Mensaje descifrado de ${sender}:`, decryptedMessage.toString("utf8"));
+                console.log("Mensaje cifrado recuperado de localStorage");
+
+                // El mensaje encriptado es un objeto JSON, lo parseamos
+                const encryptedData = JSON.parse(encryptedMessage);
+
+                // Desencriptar usando MetaMask
+                if (!window.ethereum) {
+                    throw new Error("MetaMask no disponible");
+                }
+                
+                const decryptedMessage = await window.ethereum.request({
+                    method: "eth_decrypt",
+                    params: [JSON.stringify(encryptedData), account],
+                });
+
+                console.log(`Mensaje descifrado de ${sender}:`, decryptedMessage);
                 return {
                     sender,
-                    decryptedMessage: decryptedMessage.toString("utf8"),
-                    timestamp: message.timestamp,
+                    decryptedMessage: decryptedMessage,
+                    timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
                 };
             } catch (error) {
                 console.error("Error al descifrar el mensaje:", error);
-                return { sender: message.sender, decryptedMessage: "Error al descifrar el mensaje.", timestamp: message.timestamp };
+                return { 
+                    sender: message.from, 
+                    decryptedMessage: "Error al descifrar el mensaje.", 
+                    timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString()
+                };
             }
         });
 
+        const decryptedMessages = await Promise.all(decryptedMessagesPromises);
         console.log("Mensajes descifrados:", decryptedMessages);
-        setDecryptedMessages(decryptedMessages); // Actualizar estado con mensajes descifrados
+        setDecryptedMessages(decryptedMessages);
+        toast.success("Mensajes obtenidos y descifrados exitosamente");
     } catch (error) {
         console.error("Error al obtener mensajes:", error);
         toast.error("Error al obtener mensajes desde la blockchain.");
+    } finally {
+        setLoadingMessages(false);
     }
   };
-
-  useEffect(() => {
-    if (account === "0x2446888ed5fbAcbd212815efFaEA383AC7C031ce") {
-      const hardcodedMessages = [
-        {
-          sender: "0x6dde724051d0c39a194601199c9e4f1dbea7d8ac",
-          decryptedMessage: "My pass=HolaDemoPolkaMessage",
-          timestamp: new Date().toISOString(),
-        },
-      ];
-      setDecryptedMessages(hardcodedMessages);
-    } else {
-      setDecryptedMessages([]); // Clear messages if the address does not match
-    }
-  }, [account]);
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -341,15 +439,20 @@ export default function Dashboard() {
           </p>
           {/* Datos de la wallet */}
           {account && (
-            <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-lg flex flex-col md:flex-row md:items-center gap-2">
-              <span className="text-xs text-emerald-400 font-mono">
-                <b>Wallet:</b> {account}
-              </span>
-              {chainId && (
-                <span className="text-xs text-cyan-400 font-mono md:ml-4">
-                  <b>Chain ID:</b> {chainId}
+            <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-lg flex flex-col gap-2">
+              <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <span className="text-xs text-emerald-400 font-mono">
+                  <b>Wallet:</b> {account}
                 </span>
-              )}
+                {chainId && (
+                  <span className="text-xs text-cyan-400 font-mono md:ml-4">
+                    <b>Chain ID:</b> {chainId}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-amber-400 font-mono border-t border-slate-800 pt-2">
+                💡 <b>Tip:</b> Para probar, envía un mensaje a tu propia dirección (copia la dirección de arriba)
+              </div>
             </div>
           )}
         </div>
@@ -396,11 +499,32 @@ export default function Dashboard() {
               </Alert>
             ) : (
               <div className="space-y-4">
-                {decryptedMessages.map((message, index) => (
-                  <Card
-                    key={index}
-                    className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors"
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-slate-200">
+                    Mensajes Recibidos ({decryptedMessages.length})
+                  </h3>
+                  <Button
+                    onClick={fetchAndDecryptMessages}
+                    disabled={loadingMessages}
+                    size="sm"
+                    variant="outline"
+                    className="border-slate-700 hover:bg-slate-800"
                   >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingMessages ? 'animate-spin' : ''}`} />
+                    {loadingMessages ? 'Cargando...' : 'Recargar mensajes'}
+                  </Button>
+                </div>
+                {decryptedMessages.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <Inbox className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No tienes mensajes recibidos</p>
+                  </div>
+                ) : (
+                  decryptedMessages.map((message, index) => (
+                    <Card
+                      key={index}
+                      className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors"
+                    >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3 flex-1">
@@ -423,7 +547,8 @@ export default function Dashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </TabsContent>

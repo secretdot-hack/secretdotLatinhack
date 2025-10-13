@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@metamask/eth-sig-util": "^8.2.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
@@ -23,6 +24,7 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tailwindcss/cli": "^4.1.8",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "eciesjs": "^0.4.15",
