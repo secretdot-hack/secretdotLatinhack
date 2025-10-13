@@ -305,22 +305,25 @@ export default function Dashboard() {
         }
 
         console.log("📥 Consultando mensajes para la dirección:", account);
-
-        // IMPORTANTE: inbox() usa msg.sender en el contrato, por lo que necesitamos
-        // un contrato firmado, no uno de solo lectura
-        await window.ethereum.request({ method: "eth_requestAccounts" });
+        
+        // Obtener el contrato con el proveedor conectado a la cuenta
         const provider = new ethers.BrowserProvider(window.ethereum as any);
         const signer = await provider.getSigner();
         const signedContract = await getSignedContract(signer);
-
+        
+        console.log("� Verificando función inbox en contrato:", typeof signedContract.inbox);
+        
         if (!signedContract.inbox) {
             throw new Error("inbox no está definido en el contrato.");
         }
 
         // Obtener mensajes del receptor desde la blockchain - SecretDot.sol usa inbox()
+        console.log("🔍 Llamando a inbox()...");
         const messages = await signedContract.inbox();
         console.log("📦 Mensajes recibidos desde blockchain:", messages);
         console.log("📊 Cantidad de mensajes:", messages.length);
+        console.log("📊 Tipo de messages:", typeof messages);
+        console.log("📊 Es array?:", Array.isArray(messages));
 
         if (messages.length === 0) {
             console.log("⚠️ No hay mensajes para mostrar");
@@ -400,9 +403,24 @@ export default function Dashboard() {
         console.log("Mensajes descifrados:", decryptedMessages);
         setDecryptedMessages(decryptedMessages);
         toast.success("Mensajes obtenidos y descifrados exitosamente");
-    } catch (error) {
-        console.error("Error al obtener mensajes:", error);
-        toast.error("Error al obtener mensajes desde la blockchain.");
+    } catch (error: any) {
+        console.error("❌ Error al obtener mensajes:", error);
+        console.error("❌ Error name:", error?.name);
+        console.error("❌ Error message:", error?.message);
+        console.error("❌ Error stack:", error?.stack);
+        console.error("❌ Error code:", error?.code);
+        
+        // Si es un error específico de ethers
+        if (error?.code) {
+            toast.error(`Error (${error.code}): ${error.message}`);
+        } else {
+            toast.error("Error al obtener mensajes desde la blockchain.");
+        }
+        
+        // Reintentar si es un error de red
+        if (error?.code === 'NETWORK_ERROR' || error?.code === 'TIMEOUT') {
+            console.log("⚠️ Error de red detectado. Considera reintentar.");
+        }
     } finally {
         setLoadingMessages(false);
     }
