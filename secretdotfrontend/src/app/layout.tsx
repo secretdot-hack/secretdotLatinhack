@@ -4,7 +4,7 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 export const metadata: Metadata = {
-  title: "SectretDot - Secure Messenger",
+  title: "SecretDot - Secure Messenger",
   keywords: [
     "secure messenger",
     "end-to-end encryption",

@@ -304,15 +304,21 @@ export default function Dashboard() {
             return;
         }
 
-        const contract = getContract();
-        if (!contract.inbox) {
+        console.log("📥 Consultando mensajes para la dirección:", account);
+
+        // IMPORTANTE: inbox() usa msg.sender en el contrato, por lo que necesitamos
+        // un contrato firmado, no uno de solo lectura
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.BrowserProvider(window.ethereum as any);
+        const signer = await provider.getSigner();
+        const signedContract = await getSignedContract(signer);
+
+        if (!signedContract.inbox) {
             throw new Error("inbox no está definido en el contrato.");
         }
 
-        console.log("📥 Consultando mensajes para la dirección:", account);
-
         // Obtener mensajes del receptor desde la blockchain - SecretDot.sol usa inbox()
-        const messages = await contract.inbox();
+        const messages = await signedContract.inbox();
         console.log("📦 Mensajes recibidos desde blockchain:", messages);
         console.log("📊 Cantidad de mensajes:", messages.length);
 

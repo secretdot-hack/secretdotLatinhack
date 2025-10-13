@@ -5,7 +5,7 @@ export const ASSET_HUB_CONFIG = {
   name: 'Polkadot Hub TestNet',
   rpc: 'https://testnet-passet-hub-eth-rpc.polkadot.io', 
   chainId: 420420422, 
-  chainIdHex: '0x1911f0a6',
+  chainIdHex: '0x190f1b46', // Chain ID real verificado desde la red
   blockExplorer: 'https://blockscout-passet-hub.parity-testnet.parity.io',
   symbol: 'PAS',
   decimals: 18,
