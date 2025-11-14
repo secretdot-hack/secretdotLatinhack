@@ -9,6 +9,8 @@ cd secretdotfrontend
 
 npm i
 
+npm run dev
+
 ```
 
 # 🔐 SecretDot
