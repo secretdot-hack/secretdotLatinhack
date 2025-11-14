@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import SecureMessageModal from "./Secure-Message-Modal"
+import OnboardingModal from "./OnboardingModal"
 import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
@@ -153,6 +154,7 @@ export default function Dashboard() {
   const [hasPublicKey, setHasPublicKey] = useState(false)
   const [activeTab, setActiveTab] = useState("inbox")
   const [modalOpen, setModalOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -270,6 +272,17 @@ export default function Dashboard() {
       fetchAndDecryptMessages();
     }
   }, [hasPublicKey, account]);
+
+  // Mostrar el modal de onboarding cuando no hay clave pública y hay cuenta conectada
+  useEffect(() => {
+    if (!hasPublicKey && account && publicKey && !onboardingOpen) {
+      // Pequeño delay para que la animación se vea mejor
+      const timer = setTimeout(() => {
+        setOnboardingOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasPublicKey, account, publicKey]);
 
 /*
   useEffect(() => {
@@ -592,10 +605,20 @@ export default function Dashboard() {
                 <AlertDescription className="text-slate-300 mb-4">
                   {DASHBOARD_COPY.encryptionKey.description}
                 </AlertDescription>
-                <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Key className="h-4 w-4 mr-2" />
-                  {DASHBOARD_COPY.encryptionKey.button}
-                </Button>
+                <div className="flex gap-3">
+                  <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Key className="h-4 w-4 mr-2" />
+                    {DASHBOARD_COPY.encryptionKey.button}
+                  </Button>
+                  <Button 
+                    onClick={() => setOnboardingOpen(true)} 
+                    variant="outline"
+                    className="w-fit border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Ver guía
+                  </Button>
+                </div>
               </Alert>
             ) : (
               <div className="space-y-4">
@@ -721,6 +744,13 @@ export default function Dashboard() {
           <Plus className="h-6 w-6" />
           <span className="sr-only">{DASHBOARD_COPY.floatingButton.ariaLabel}</span>
         </Button>
+
+        {/* Onboarding Modal */}
+        <OnboardingModal 
+          open={onboardingOpen} 
+          onComplete={() => setOnboardingOpen(false)}
+          onPublishKey={handleMakePublicKey}
+        />
 
         {/* Secure Message Modal */}
         <SecureMessageModal open={modalOpen} onOpenChange={setModalOpen} />
