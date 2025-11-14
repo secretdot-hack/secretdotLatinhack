@@ -15,6 +15,83 @@ import { ethers } from "ethers"
 import { Toaster, toast } from "react-hot-toast"
 import { addPaseoNetwork, isCorrectNetwork } from "~/utils/ether"
 
+// Copy/Textos de la aplicación
+const DASHBOARD_COPY = {
+  common: {
+    yourIdentity: "Tu public key",
+    yourAddress: "Tu dirección",
+    chainId: "ID de la cadena",
+  },
+  header: {
+    title: "SecretDot",
+    subtitle: "Mensajería privada y descentralizada con cifrado end-to-end en Polkadot",
+    subtitleHighlight: "Polkadot",
+  },
+  tip: {
+    label: "💡",
+    description: "¿Quieres probar? Envía un mensaje a tu propia dirección para verlo aparecer en tu bandeja de entrada.",
+  },
+  tabs: {
+    inbox: "Bandeja de entrada",
+    sent: "Enviados",
+  },
+  encryptionKey: {
+    title: "Prepara tu privacidad",
+    description: "Necesitas activar el cifrado local para recibir mensajes privados. Tu clave se guarda únicamente en tu dispositivo, tú eres quien controla todo.",
+    button: "Activar cifrado local",
+    keyRegistrationSuccess: "¡Listo! Tu cifrado está activado",
+    keyRegistrationError: "No se pudo activar el cifrado. Intenta de nuevo",
+  },
+  inbox: {
+    title: "Mensajes privados",
+    emptyState: "Sin mensajes por ahora",
+    noMessagesFound: "Aún no tienes mensajes",
+    refreshButton: "Actualizar",
+    refreshingButton: "Actualizando...",
+    decryptedMessage: "Mensaje",
+    fromLabel: "De:",
+  },
+  sent: {
+    title: "Enviados",
+    toLabel: "Para:",
+    status: {
+      delivered: "Entregado",
+      pending: "Enviando",
+    },
+  },
+  floatingButton: {
+    label: "Nuevo mensaje",
+    ariaLabel: "Enviar nuevo mensaje privado",
+  },
+  messages: {
+    network: {
+      switching: "Conectando a la red...",
+      switchedSuccess: "Conectado a Paseo Asset Hub TestNet",
+      switchError: "No pudimos cambiar de red. Cámbialo manualmente en MetaMask a Paseo Asset Hub TestNet",
+      checkError: "Error al verificar la red",
+    },
+    encryption: {
+      unavailable: "No pudimos acceder a tu cifrado",
+      notConnected: "Tu billetera no está conectada",
+      success: "Cifrado activado desde tu billetera",
+      error: "Error al activar el cifrado",
+    },
+    messages: {
+      unavailable: "MetaMask no está disponible",
+      notFound: "No encontramos mensajes en tu bandeja de entrada",
+      fetchError: "Error al cargar los mensajes",
+      decryptError: "No pudimos desencriptar el mensaje",
+      successFetch: "Mensajes descargados y listos",
+    },
+  },
+  security: {
+    localEncryption: "Tu cifrado siempre local",
+    localEncryptionDescription: "Cada mensaje se cifra en tu navegador. Solo tú tienes acceso a tus mensajes",
+    endToEnd: "Privacidad garantizada",
+    decentralized: "Sin intermediarios",
+  },
+} as const
+
 // Simulated data
 const receivedMessages = [
   {
@@ -94,19 +171,19 @@ export default function Dashboard() {
       try {
         const correctNetwork = await isCorrectNetwork();
         if (!correctNetwork) {
-          toast.loading("Cambiando a la red Paseo...");
+          toast.loading(DASHBOARD_COPY.messages.network.switching);
           const switched = await addPaseoNetwork();
           if (switched) {
             toast.dismiss();
-            toast.success("Conectado a la red Paseo Asset Hub TestNet");
+            toast.success(DASHBOARD_COPY.messages.network.switchedSuccess);
           } else {
             toast.dismiss();
-            toast.error("No se pudo cambiar a la red Paseo. Por favor, cámbiala manualmente en MetaMask.");
+            toast.error(DASHBOARD_COPY.messages.network.switchError);
           }
         }
       } catch (error) {
         console.error("Error al verificar/cambiar red:", error);
-        toast.error("Error al verificar la red");
+        toast.error(DASHBOARD_COPY.messages.network.checkError);
       }
     };
 
@@ -119,13 +196,13 @@ export default function Dashboard() {
       try {
         if (!window?.ethereum) {
           console.error("MetaMask no está disponible");
-          toast.error("MetaMask no está disponible");
+          toast.error(DASHBOARD_COPY.messages.encryption.unavailable);
           return;
         }
     
         if (!account) {
           console.error("No hay cuenta conectada");
-          toast.error("No hay cuenta conectada");
+          toast.error(DASHBOARD_COPY.messages.encryption.notConnected);
           return;
         }
     
@@ -136,11 +213,11 @@ export default function Dashboard() {
         
         setPublicKey(publicKey);
         console.log("Public Key obtenida desde MetaMask:", publicKey);
-        toast.success("Clave pública obtenida desde MetaMask");
+        toast.success(DASHBOARD_COPY.messages.encryption.success);
         
       } catch (error) {
         console.error("Error al obtener la clave pública:", error);
-        toast.error("Error al obtener la clave pública desde MetaMask");
+        toast.error(DASHBOARD_COPY.messages.encryption.error);
         // Podrías mostrar un mensaje de error al usuario aquí
       }
     }
@@ -230,26 +307,26 @@ export default function Dashboard() {
       // Verificar que tenemos la clave pública
       if (!publicKey) {
         console.error("No hay clave pública disponible");
-        toast.error("No hay clave pública disponible");
+        toast.error(DASHBOARD_COPY.messages.encryption.unavailable);
         return;
       }
 
       if (!window.ethereum) {
-        toast.error("MetaMask no está disponible");
+        toast.error(DASHBOARD_COPY.messages.encryption.unavailable);
         return;
       }
 
       // Verificar que estamos en la red correcta
       const correctNetwork = await isCorrectNetwork();
       if (!correctNetwork) {
-        toast.loading("Cambiando a la red Paseo...");
+        toast.loading(DASHBOARD_COPY.messages.network.switching);
         const switched = await addPaseoNetwork();
         toast.dismiss();
         if (!switched) {
-          toast.error("Por favor, cambia manualmente a la red Paseo Asset Hub TestNet en MetaMask");
+          toast.error(DASHBOARD_COPY.messages.network.switchError);
           return;
         }
-        toast.success("Conectado a la red Paseo");
+        toast.success(DASHBOARD_COPY.messages.network.switchedSuccess);
       }
 
       await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -271,19 +348,19 @@ export default function Dashboard() {
         // Esperar confirmación
         const receipt = await tx.wait();
         console.log("Transacción confirmada:", receipt);
-        toast.success("Clave pública registrada exitosamente en la blockchain");
+        toast.success(DASHBOARD_COPY.encryptionKey.keyRegistrationSuccess);
         
         // Solo cambiar el estado después de que la transacción sea exitosa
         setHasPublicKey(true);
         
       } else {
         console.error("setKey no está definido en el contrato.");
-        toast.error("No se pudo registrar la clave pública en el contrato.");
+        toast.error(DASHBOARD_COPY.encryptionKey.keyRegistrationError);
       }
 
     } catch (error) {
       console.error("Error al registrar la clave pública:", error);
-      toast.error("Error al registrar la clave pública");
+      toast.error(DASHBOARD_COPY.encryptionKey.keyRegistrationError);
       // Aquí podrías mostrar un mensaje de error al usuario
     }
   }
@@ -294,13 +371,13 @@ export default function Dashboard() {
         
         if (!window?.ethereum) {
             console.error("MetaMask no está disponible");
-            toast.error("MetaMask no está disponible");
+            toast.error(DASHBOARD_COPY.messages.messages.unavailable);
             return;
         }
 
         if (!account) {
             console.error("No hay cuenta conectada");
-            toast.error("No hay cuenta conectada");
+            toast.error(DASHBOARD_COPY.messages.encryption.notConnected);
             return;
         }
 
@@ -329,7 +406,7 @@ export default function Dashboard() {
             console.log("⚠️ No hay mensajes para mostrar");
             console.log("💡 Tip: Asegúrate de enviar el mensaje a la dirección:", account);
             setDecryptedMessages([]);
-            toast("No tienes mensajes recibidos", { icon: "ℹ️" });
+            toast(DASHBOARD_COPY.inbox.noMessagesFound, { icon: "ℹ️" });
             return;
         }
 
@@ -361,7 +438,7 @@ export default function Dashboard() {
                     );
                     return {
                         sender,
-                        decryptedMessage: "Mensaje no disponible (no encontrado en almacenamiento local)",
+                        decryptedMessage: DASHBOARD_COPY.messages.messages.notFound,
                         timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
                     };
                 }
@@ -393,7 +470,7 @@ export default function Dashboard() {
                 console.error("Error al descifrar el mensaje:", error);
                 return { 
                     sender: message.from, 
-                    decryptedMessage: "Error al descifrar el mensaje.", 
+                    decryptedMessage: DASHBOARD_COPY.messages.messages.decryptError, 
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString()
                 };
             }
@@ -449,33 +526,34 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 mb-2">
             <Shield className="h-8 w-8 text-emerald-400" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              SecretDot
+              {DASHBOARD_COPY.header.title}
             </h1>
           </div>
           <p className="text-slate-400 font-mono text-sm">
-            Envía mensajería sensible anonima y descentralizada con cifrado end-to-end mediante la red de{" "}
+            {DASHBOARD_COPY.header.subtitle.split(DASHBOARD_COPY.header.subtitleHighlight)[0]}
             <span
               className="font-bold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent"
               style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
             >
-              Polkadot
+              {DASHBOARD_COPY.header.subtitleHighlight}
             </span>
+            {DASHBOARD_COPY.header.subtitle.split(DASHBOARD_COPY.header.subtitleHighlight)[1]}
           </p>
           {/* Datos de la wallet */}
           {account && (
             <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-lg flex flex-col gap-2">
               <div className="flex flex-col md:flex-row md:items-center gap-2">
                 <span className="text-xs text-emerald-400 font-mono">
-                  <b>Wallet:</b> {account}
+                  <b>{DASHBOARD_COPY.common.yourIdentity}:</b> {account}
                 </span>
                 {chainId && (
                   <span className="text-xs text-cyan-400 font-mono md:ml-4">
-                    <b>Chain ID:</b> {chainId}
+                    <b>{DASHBOARD_COPY.common.chainId}:</b> {chainId}
                   </span>
                 )}
               </div>
               <div className="text-xs text-amber-400 font-mono border-t border-slate-800 pt-2">
-                💡 <b>Tip:</b> Para probar, envía un mensaje a tu propia dirección (copia la dirección de arriba)
+                <b>{DASHBOARD_COPY.tip.label}</b> {DASHBOARD_COPY.tip.description}
               </div>
             </div>
           )}
@@ -489,7 +567,7 @@ export default function Dashboard() {
               className="data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-400 flex items-center gap-2"
             >
               <Inbox className="h-4 w-4" />
-              Inbox
+              {DASHBOARD_COPY.tabs.inbox}
               {!hasPublicKey && (
                 <Badge variant="destructive" className="ml-2 h-5 text-xs">
                   !
@@ -501,7 +579,7 @@ export default function Dashboard() {
               className="text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-emerald-400 flex items-center gap-2"
             >
               <Send className="h-4 w-4 text-slate-400" />
-              Enviados
+              {DASHBOARD_COPY.tabs.sent}
             </TabsTrigger>
           </TabsList>
 
@@ -510,22 +588,20 @@ export default function Dashboard() {
             {!hasPublicKey ? (
               <Alert className="border-amber-500/50 bg-amber-500/10">
                 <Key className="h-4 w-4 text-amber-500" />
-                <AlertTitle className="text-amber-500">Clave pública requerida</AlertTitle>
+                <AlertTitle className="text-amber-500">{DASHBOARD_COPY.encryptionKey.title}</AlertTitle>
                 <AlertDescription className="text-slate-300 mb-4">
-                  Para recibir mensajes cifrados, necesitas hacer pública tu clave de cifrado. Esto permite que otros
-                  usuarios puedan enviarte mensajes seguros en la blockchain. Tu clave privada permanece segura en tu
-                  dispositivo.
+                  {DASHBOARD_COPY.encryptionKey.description}
                 </AlertDescription>
                 <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white">
                   <Key className="h-4 w-4 mr-2" />
-                  Hacer pública mi clave
+                  {DASHBOARD_COPY.encryptionKey.button}
                 </Button>
               </Alert>
             ) : (
               <div className="space-y-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-slate-200">
-                    Mensajes Recibidos ({decryptedMessages.length})
+                    {DASHBOARD_COPY.inbox.title} ({decryptedMessages.length})
                   </h3>
                   <Button
                     onClick={fetchAndDecryptMessages}
@@ -535,13 +611,13 @@ export default function Dashboard() {
                     className="border-slate-700 hover:bg-slate-800"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${loadingMessages ? 'animate-spin' : ''}`} />
-                    {loadingMessages ? 'Cargando...' : 'Recargar mensajes'}
+                    {loadingMessages ? DASHBOARD_COPY.inbox.refreshingButton : DASHBOARD_COPY.inbox.refreshButton}
                   </Button>
                 </div>
                 {decryptedMessages.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
                     <Inbox className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No tienes mensajes recibidos</p>
+                    <p>{DASHBOARD_COPY.inbox.emptyState}</p>
                   </div>
                 ) : (
                   decryptedMessages.map((message, index) => (
@@ -561,7 +637,7 @@ export default function Dashboard() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-semibold text-slate-200">{formatAddress(message.sender)}</span>
                             </div>
-                            <h3 className="font-medium text-white mb-1">Mensaje Descifrado</h3>
+                            <h3 className="font-medium text-white mb-1">{DASHBOARD_COPY.inbox.decryptedMessage}</h3>
                             <p className="text-sm text-slate-400">{message.decryptedMessage}</p>
                           </div>
                         </div>
@@ -595,7 +671,7 @@ export default function Dashboard() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm text-slate-400">Para:</span>
+                            <span className="text-sm text-slate-400">{DASHBOARD_COPY.sent.toLabel}</span>
                             <span className="font-semibold text-slate-200">{formatAddress(message.to)}</span>
                             {/* <span className="font-semibold text-slate-200">{message.toAlias}</span> */}
                             {/* <span className="text-xs font-mono text-slate-500">{formatAddress(message.to)}</span> */}
@@ -618,12 +694,12 @@ export default function Dashboard() {
                           {message.status === "delivered" ? (
                             <>
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              Entregado
+                              {DASHBOARD_COPY.sent.status.delivered}
                             </>
                           ) : (
                             <>
                               <Clock className="h-3 w-3 mr-1" />
-                              Pendiente
+                              {DASHBOARD_COPY.sent.status.pending}
                             </>
                           )}
                         </Badge>
@@ -643,7 +719,7 @@ export default function Dashboard() {
           onClick={() => setModalOpen(true)}
         >
           <Plus className="h-6 w-6" />
-          <span className="sr-only">Nuevo mensaje</span>
+          <span className="sr-only">{DASHBOARD_COPY.floatingButton.ariaLabel}</span>
         </Button>
 
         {/* Secure Message Modal */}
