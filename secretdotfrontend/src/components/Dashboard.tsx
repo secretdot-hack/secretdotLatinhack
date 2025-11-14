@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { Badge } from "./ui/badge"
 import { Avatar, AvatarFallback } from "./ui/avatar"
+import { MessageSkeletonList } from "./ui/message-skeleton"
 import { getContract } from "~/utils/contract"
 import { getSignedContract } from "~/utils/contract"
 import { ethers } from "ethers"
@@ -537,7 +538,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Shield className="h-8 w-8 text-emerald-400" />
+            <Shield className="h-8 w-8 text-emerald-400 animate-lock-pulse" />
             <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               {DASHBOARD_COPY.header.title}
             </h1>
@@ -600,22 +601,22 @@ export default function Dashboard() {
           <TabsContent value="inbox" className="mt-6">
             {!hasPublicKey ? (
               <Alert className="border-amber-500/50 bg-amber-500/10">
-                <Key className="h-4 w-4 text-amber-500" />
+                <Key className="h-4 w-4 text-amber-500 animate-lock-pulse" />
                 <AlertTitle className="text-amber-500">{DASHBOARD_COPY.encryptionKey.title}</AlertTitle>
                 <AlertDescription className="text-slate-300 mb-4">
                   {DASHBOARD_COPY.encryptionKey.description}
                 </AlertDescription>
                 <div className="flex gap-3">
-                  <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white hover-lift">
                     <Key className="h-4 w-4 mr-2" />
                     {DASHBOARD_COPY.encryptionKey.button}
                   </Button>
                   <Button 
                     onClick={() => setOnboardingOpen(true)} 
                     variant="outline"
-                    className="w-fit border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+                    className="w-fit border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 hover-lift"
                   >
-                    <Shield className="h-4 w-4 mr-2" />
+                    <Shield className="h-4 w-4 mr-2 animate-lock-pulse" />
                     Ver guía
                   </Button>
                 </div>
@@ -631,14 +632,16 @@ export default function Dashboard() {
                     disabled={loadingMessages}
                     size="sm"
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800"
+                    className="border-slate-700 hover:bg-slate-800 hover-lift"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${loadingMessages ? 'animate-spin' : ''}`} />
                     {loadingMessages ? DASHBOARD_COPY.inbox.refreshingButton : DASHBOARD_COPY.inbox.refreshButton}
                   </Button>
                 </div>
-                {decryptedMessages.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400">
+                {loadingMessages ? (
+                  <MessageSkeletonList count={3} />
+                ) : decryptedMessages.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 animate-fade-in-up">
                     <Inbox className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>{DASHBOARD_COPY.inbox.emptyState}</p>
                   </div>
@@ -646,7 +649,7 @@ export default function Dashboard() {
                   decryptedMessages.map((message, index) => (
                     <Card
                       key={index}
-                      className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors"
+                      className={`bg-slate-900/50 border-slate-800 hover:border-slate-700 hover-glow transition-all animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}`}
                     >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
@@ -659,6 +662,7 @@ export default function Dashboard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-semibold text-slate-200">{formatAddress(message.sender)}</span>
+                              <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />
                             </div>
                             <h3 className="font-medium text-white mb-1">{DASHBOARD_COPY.inbox.decryptedMessage}</h3>
                             <p className="text-sm text-slate-400">{message.decryptedMessage}</p>
@@ -679,10 +683,10 @@ export default function Dashboard() {
           {/* Sent Tab */}
           <TabsContent value="sent" className="mt-6">
             <div className="space-y-4">
-              {sentMessages.map((message) => (
+              {sentMessages.map((message, index) => (
                 <Card
                   key={message.id}
-                  className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-colors"
+                  className={`bg-slate-900/50 border-slate-800 hover:border-slate-700 hover-glow transition-all animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
@@ -698,7 +702,7 @@ export default function Dashboard() {
                             <span className="font-semibold text-slate-200">{formatAddress(message.to)}</span>
                             {/* <span className="font-semibold text-slate-200">{message.toAlias}</span> */}
                             {/* <span className="text-xs font-mono text-slate-500">{formatAddress(message.to)}</span> */}
-                            {message.encrypted && <Shield className="h-3 w-3 text-emerald-400" />}
+                            {message.encrypted && <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />}
                           </div>
                           <h3 className="font-medium text-slate-300 mb-1">{message.subject}</h3>
                           <p className="text-sm text-slate-400 line-clamp-2">{message.preview}</p>
@@ -738,8 +742,9 @@ export default function Dashboard() {
         {/* Floating Action Button */}
         <Button
           size="lg"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-105"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-110 hover:shadow-2xl hover:shadow-emerald-500/40"
           onClick={() => setModalOpen(true)}
+          aria-label={DASHBOARD_COPY.floatingButton.ariaLabel}
         >
           <Plus className="h-6 w-6" />
           <span className="sr-only">{DASHBOARD_COPY.floatingButton.ariaLabel}</span>

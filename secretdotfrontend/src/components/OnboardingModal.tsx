@@ -27,7 +27,7 @@ const ONBOARDING_STEPS = [
       <div className="relative w-full h-32 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 border-2 border-cyan-400/50 flex items-center justify-center animate-pulse">
-            <Key className="h-10 w-10 text-cyan-400" />
+            <Key className="h-10 w-10 text-cyan-400 animate-lock-pulse" />
           </div>
         </div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full bg-cyan-500/5 animate-ping" style={{ animationDuration: '3s' }} />
@@ -61,7 +61,7 @@ const ONBOARDING_STEPS = [
         
         <div className="flex flex-col items-center gap-2">
           <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border-2 border-emerald-400/50 flex items-center justify-center">
-            <Lock className="h-8 w-8 text-emerald-400" />
+            <Lock className="h-8 w-8 text-emerald-400 animate-lock-pulse" />
           </div>
           <span className="text-xs text-slate-400">Cifrado</span>
         </div>
@@ -83,7 +83,7 @@ const ONBOARDING_STEPS = [
       <div className="relative w-full h-32 flex items-center justify-center">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500/20 to-purple-500/20 border-2 border-emerald-400/50 flex items-center justify-center">
-            <Shield className="h-12 w-12 text-emerald-400 animate-pulse" />
+            <Shield className="h-12 w-12 text-emerald-400 animate-lock-pulse" />
           </div>
         </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full border border-emerald-400/20 animate-ping" style={{ animationDuration: '4s' }} />
@@ -200,7 +200,7 @@ export default function OnboardingModal({ open, onComplete, onPublishKey }: Onbo
                 <Button
                   onClick={handlePrevious}
                   variant="outline"
-                  className="border-slate-700 hover:bg-slate-800"
+                  className="border-slate-700 hover:bg-slate-800 hover-lift"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Anterior
@@ -225,7 +225,7 @@ export default function OnboardingModal({ open, onComplete, onPublishKey }: Onbo
               {currentStep < ONBOARDING_STEPS.length - 1 ? (
                 <Button
                   onClick={handleNext}
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 hover-lift"
                 >
                   Siguiente
                   <ArrowRight className="h-4 w-4 ml-2" />
@@ -234,7 +234,7 @@ export default function OnboardingModal({ open, onComplete, onPublishKey }: Onbo
                 <Button
                   onClick={handlePublish}
                   disabled={isPublishing || isComplete}
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 min-w-[180px]"
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 min-w-[180px] hover-lift"
                 >
                   {isComplete ? (
                     <>

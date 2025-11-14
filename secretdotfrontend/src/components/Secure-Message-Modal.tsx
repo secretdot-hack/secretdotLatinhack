@@ -204,7 +204,7 @@ export default function SecureMessageModal({
             Enviar Mensaje Seguro
           </Button>
         </DialogTrigger> */}
-      <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent">
+      <DialogContent className="sm:max-w-md p-0 border-0 bg-transparent animate-fade-in-up">
         <Card className="w-full border-slate-200 shadow-xl">
           <CardHeader className="pb-4 relative">
               {/* <Button variant="ghost" size="icon" className="absolute right-4 top-4 h-6 w-6" onClick={handleCancel}>
@@ -212,7 +212,7 @@ export default function SecureMessageModal({
               </Button> */}
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Shield className="w-5 h-5 text-blue-600" />
+                <Shield className="w-5 h-5 text-blue-600 animate-lock-pulse" />
               </div>
               <div>
                 <CardTitle className="text-xl text-slate-900">Mensaje Seguro</CardTitle>
@@ -225,9 +225,9 @@ export default function SecureMessageModal({
 
           <CardContent className="space-y-6">
             {/* Explicación de seguridad */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 -mt-2 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 -mt-2 mb-4 animate-fade-in-up stagger-item-1">
                 <div className="flex items-start gap-3">
-                  <Lock className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <Lock className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0 animate-lock-pulse" />
                   <p className="text-sm text-blue-800 leading-relaxed">
                     Tu mensaje será encriptado localmente en tu dispositivo antes de ser compartido
                   </p>
@@ -243,7 +243,7 @@ export default function SecureMessageModal({
                 placeholder="Escribe aquí tu mensaje..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="min-h-[40px] -mb-4 resize-none border-slate-300 focus:border-blue-500 focus:ring-blue-500 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                className="min-h-[40px] -mb-4 resize-none border-slate-300 focus:border-blue-500 focus:ring-blue-500 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 hover:shadow-md"
               />
             </div>
 
@@ -258,26 +258,26 @@ export default function SecureMessageModal({
                   placeholder="0x1a23...b45c"
                   value={addresses}
                   onChange={(e) => setAddresses(e.target.value)}
-                    className={`min-h-[80px] resize-none border-slate-300 focus:border-blue-500 focus:ring-blue-500 pr-10 ${
+                    className={`min-h-[80px] resize-none border-slate-300 focus:border-blue-500 focus:ring-blue-500 pr-10 transition-all duration-200 ${
                     addressValid === true
-                      ? "border-green-400"
+                      ? "border-green-400 bg-green-50/30"
                       : addressValid === false
-                      ? "border-red-400"
+                      ? "border-red-400 bg-red-50/30"
                       : ""
                   }`}
                 />
                 {/* Icono visual de validación */}
                 {addresses.trim() && (
-                  <span className="absolute right-2 top-2">
+                  <span className="absolute right-2 top-2 animate-fade-in-up">
                     {addressCheckLoading ? (
                       <svg className="animate-spin h-5 w-5 text-slate-400" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                       </svg>
                     ) : addressValid === true ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <CheckCircle2 className="w-5 h-5 text-green-500 animate-fade-in-up" />
                     ) : addressValid === false ? (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      <AlertCircle className="w-5 h-5 text-red-500 animate-fade-in-up" />
                     ) : null}
                   </span>
                 )}
@@ -300,14 +300,14 @@ export default function SecureMessageModal({
               <Button
                 variant="outline"
                 onClick={handleCancel}
-                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50"
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50 hover-lift"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSend}
                   disabled={!message.trim() || !addresses.trim()}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 hover-lift"
               >
                     <Shield className="w-4 h-4 mr-2" />
                     Enviar Seguro
