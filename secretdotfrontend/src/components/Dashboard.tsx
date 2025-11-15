@@ -507,7 +507,6 @@ export default function Dashboard() {
                     errorDetails = "El usuario rechazó la solicitud de descifrado en MetaMask.";
                 } else if (error?.message?.includes("decrypt")) {
                     errorReason = "Clave de descifrado incorrecta";
-                    errorDetails = "El mensaje fue cifrado con una clave pública diferente a la tuya. Esto puede ocurrir si enviaste el mensaje a tu propia dirección sin publicar tu clave pública primero.";
                 } else if (error?.message?.includes("parse") || error?.message?.includes("JSON")) {
                     errorReason = "Mensaje corrupto";
                     errorDetails = "Los datos del mensaje están corruptos o tienen un formato inválido.";
@@ -907,16 +906,6 @@ export default function Dashboard() {
                                     </p>
                                     <p className="text-xs text-slate-400 mt-1 leading-relaxed font-light">
                                       {message.errorDetails}
-                                    </p>
-                                  </div>
-                                </div>
-                                
-                                {/* Tutorial tip */}
-                                <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 mt-2">
-                                  <div className="flex items-start gap-2">
-                                    <Key className="h-3 w-3 text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <p className="text-xs text-blue-300 leading-relaxed font-light">
-                                      <span className="font-medium">💡 Tip:</span> Esto puede ocurrir si enviaste el mensaje a tu propia dirección sin publicar tu clave pública primero.
                                     </p>
                                   </div>
                                 </div>
