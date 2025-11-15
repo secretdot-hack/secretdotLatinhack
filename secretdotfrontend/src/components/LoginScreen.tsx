@@ -23,16 +23,22 @@ export default function LoginScreen() {
   const [chainId, setChainId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasNotified = useRef(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirige automáticamente al dashboard si hay cuenta conectada
   useEffect(() => {
     if (account && !hasNotified.current) {
+      setIsRedirecting(true);
       // Guarda la cuenta en localStorage para el dashboard
       localStorage.setItem("secretdot_account", account);
       localStorage.setItem("secretdot_chainId", chainId ? chainId.toString() : "");
       toast.success("Wallet conectada correctamente");
       hasNotified.current = true;
-      router.push("/secure-messenger");
+      
+      // Pequeño delay para asegurar que el loader se vea
+      setTimeout(() => {
+        router.push("/secure-messenger");
+      }, 500);
     }
   }, [account, chainId, router]);
 
@@ -63,11 +69,14 @@ export default function LoginScreen() {
       if (currentChainId !== ASSET_HUB_CONFIG.chainId) {
         await switchNetwork();
       }
+      
+      // NO ponemos setIsConnecting(false) aquí
+      // El loader se mantendrá visible hasta que se complete la redirección
     } catch (err) {
       setError("Error al conectar con MetaMask");
       toast.error("Error al conectar con MetaMask");
+      setIsConnecting(false);
     }
-    setIsConnecting(false);
   };
 
   const switchNetwork = async () => {
@@ -245,9 +254,11 @@ export default function LoginScreen() {
           </p>
         </div>
 
-        {/* Loader de conexión */}
-        {isConnecting && (
-          <FullScreenLoader message="Conectando con tu wallet..." />
+        {/* Loader de conexión y redirección */}
+        {(isConnecting || isRedirecting) && (
+          <FullScreenLoader 
+            message={isRedirecting ? "Redirigiendo al dashboard..." : "Conectando con tu wallet..."} 
+          />
         )}
       </div>
     </div>
