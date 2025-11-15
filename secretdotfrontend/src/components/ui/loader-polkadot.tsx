@@ -46,7 +46,7 @@ export const PolkadotLoader: React.FC<PolkadotLoaderProps> = ({
           }
           
           .polkadot-loader-svg {
-            animation: polkadot-rotate 3s linear infinite;
+            animation: polkadot-rotate 6s linear infinite;
             filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
           }
           

@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation";
-import { Shield, Wallet, Lock, ArrowRight, CheckCircle } from "lucide-react"
+import { Wallet, Lock, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
 import { InlineLoader, FullScreenLoader } from "./ui/loader"
+import { PolkadotLoader } from "./ui/loader-polkadot"
 import { ASSET_HUB_CONFIG } from "../utils/ether";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -153,8 +154,8 @@ export default function LoginScreen() {
         )} */}
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl mb-4">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <PolkadotLoader size={80} />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">SecretDot</h1>
           <p className="text-gray-400 text-sm">Powered by <span
