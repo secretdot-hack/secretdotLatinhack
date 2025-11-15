@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import SecureMessageModal from "./Secure-Message-Modal"
 import OnboardingModal from "./OnboardingModal"
-import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw, AlertTriangle, ChevronDown, ChevronUp, RotateCcw } from "lucide-react"
+import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw, AlertTriangle, ChevronDown, ChevronUp, RotateCcw, Eye, EyeOff } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
@@ -169,6 +169,7 @@ export default function Dashboard() {
   const [inboxCount, setInboxCount] = useState(0);
   const [sentCount, setSentCount] = useState(0);
   const [expandedErrors, setExpandedErrors] = useState<Set<number>>(new Set());
+  const [showFullAddress, setShowFullAddress] = useState(false);
 
   useEffect(() => {    
     // Recupera los datos de la wallet conectada
@@ -663,9 +664,22 @@ export default function Dashboard() {
               <div className="hidden md:flex items-center gap-3">
                 <div className="flex flex-col items-end gap-0.5">
                   <span className="text-xs font-light text-slate-500">Conectado</span>
-                  <span className="text-sm font-mono font-medium text-slate-300">
-                    {formatAddress(account)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-medium text-slate-300">
+                      {showFullAddress ? account : formatAddress(account)}
+                    </span>
+                    <button
+                      onClick={() => setShowFullAddress(!showFullAddress)}
+                      className="p-1 hover:bg-slate-800 rounded-md transition-colors duration-200"
+                      title={showFullAddress ? "Ocultar dirección completa" : "Mostrar dirección completa"}
+                    >
+                      {showFullAddress ? (
+                        <EyeOff className="h-4 w-4 text-slate-400 hover:text-slate-300" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-slate-400 hover:text-slate-300" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center">
                   <span className="text-xs font-bold text-slate-900">
@@ -680,7 +694,20 @@ export default function Dashboard() {
           {account && (
             <div className="md:hidden mt-3 pt-3 border-t border-slate-800/50">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-mono text-slate-400">{formatAddress(account)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-slate-400">{showFullAddress ? account : formatAddress(account)}</span>
+                  <button
+                    onClick={() => setShowFullAddress(!showFullAddress)}
+                    className="p-1 hover:bg-slate-800 rounded-md transition-colors duration-200"
+                    title={showFullAddress ? "Ocultar dirección completa" : "Mostrar dirección completa"}
+                  >
+                    {showFullAddress ? (
+                      <EyeOff className="h-3 w-3 text-slate-400 hover:text-slate-300" />
+                    ) : (
+                      <Eye className="h-3 w-3 text-slate-400 hover:text-slate-300" />
+                    )}
+                  </button>
+                </div>
                 {chainId && (
                   <span className="text-slate-500">Chain: {chainId}</span>
                 )}
