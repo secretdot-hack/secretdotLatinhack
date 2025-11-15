@@ -59,49 +59,86 @@ export default function SecureMessageModal({
             return;
         }
 
-        console.log("Clave pública del destinatario:", recipientPubKey);
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("🔐 INICIANDO PROCESO DE ENCRIPTACIÓN");
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("📨 Mensaje original (texto plano):", message);
+        console.log("🔑 Clave pública del destinatario:", recipientPubKey);
+        console.log("📍 Dirección del destinatario:", addresses.trim());
 
         // Encriptar el mensaje usando la librería de MetaMask
+        console.log("\n⚙️ Encriptando con algoritmo x25519-xsalsa20-poly1305...");
         const encryptedData = encrypt({
             publicKey: recipientPubKey,
             data: message,
             version: 'x25519-xsalsa20-poly1305'
         });
 
+        console.log("✅ Encriptación completada!");
+        console.log("📦 Estructura del mensaje encriptado:");
+        console.log("  - version:", encryptedData.version);
+        console.log("  - nonce:", encryptedData.nonce);
+        console.log("  - ephemPublicKey:", encryptedData.ephemPublicKey);
+        console.log("  - ciphertext (primeros 50 chars):", encryptedData.ciphertext.substring(0, 50) + "...");
+
         // Convertir a string JSON
         const encryptedMessage = JSON.stringify(encryptedData);
-        console.log("Mensaje encriptado:", encryptedMessage);
+        console.log("\n📝 Mensaje encriptado convertido a JSON:");
+        console.log("  Longitud:", encryptedMessage.length, "caracteres");
+        console.log("  Primeros 100 chars:", encryptedMessage.substring(0, 100) + "...");
 
         // Crear un hash IPFS-like que será usado tanto en localStorage como en el contrato
         const timestamp = Date.now().toString();
+        console.log("\n🔨 Generando hash IPFS-like...");
+        console.log("  Timestamp:", timestamp);
+
         const hashInput = encryptedMessage + timestamp + addresses.trim();
         const fullHash = ethers.keccak256(ethers.toUtf8Bytes(hashInput));
-        
+        console.log("  Hash completo (keccak256):", fullHash);
+
         // Formato IPFS-like (Qm + 46 caracteres del hash)
         const ipfsLikeHash = `Qm${fullHash.slice(2, 48)}`;
-        console.log("Hash IPFS-like:", ipfsLikeHash);
+        console.log("  ✅ Hash IPFS-like generado:", ipfsLikeHash);
 
         // Guardar el mensaje cifrado en localStorage usando el hash IPFS-like
         const storageKey = `secretdot_msg_${ipfsLikeHash}`;
-        localStorage.setItem(storageKey, encryptedMessage);
-        console.log("Mensaje guardado en localStorage con clave:", storageKey);
+        console.log("\n💾 Guardando en localStorage...");
+        console.log("  Clave de almacenamiento:", storageKey);
 
+        localStorage.setItem(storageKey, encryptedMessage);
+
+        // Verificar que se guardó correctamente
+        const verificacion = localStorage.getItem(storageKey);
+        if (verificacion === encryptedMessage) {
+            console.log("  ✅ Verificado: Mensaje guardado correctamente en localStorage");
+        } else {
+            console.error("  ❌ ERROR: El mensaje no se guardó correctamente!");
+        }
+
+        console.log("\n🔗 Preparando transacción blockchain...");
         await window.ethereum.request({ method: "eth_requestAccounts" });
         const provider = new ethers.BrowserProvider(window.ethereum as any);
         const signer = await provider.getSigner();
         const signedContract = await getSignedContract(signer);
 
         if (typeof signedContract.send === "function") {
-            console.log("📤 Enviando mensaje a:", addresses.trim());
-            console.log("📤 Hash del mensaje:", ipfsLikeHash);
-            
+            console.log("\n📤 ENVIANDO TRANSACCIÓN A LA BLOCKCHAIN");
+            console.log("  Destinatario:", addresses.trim());
+            console.log("  Hash IPFS-like:", ipfsLikeHash);
+            console.log("  Función del contrato: send(address, string)");
+
             // SecretDot.sol usa send(address to, string calldata h)
             const tx = await signedContract.send(addresses.trim(), ipfsLikeHash);
-            console.log("✅ Transacción enviada:", tx.hash);
+            console.log("\n⏳ Transacción enviada a la red");
+            console.log("  Hash de la transacción:", tx.hash);
+            toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
 
             const receipt = await tx.wait();
-            console.log("✅ Transacción confirmada:", receipt);
-            console.log("📊 Logs de la transacción:", receipt.logs);
+            console.log("\n✅ TRANSACCIÓN CONFIRMADA EN LA BLOCKCHAIN");
+            console.log("  Block number:", receipt.blockNumber);
+            console.log("  Block hash:", receipt.blockHash);
+            console.log("  Gas usado:", receipt.gasUsed.toString());
+            console.log("  Eventos emitidos:", receipt.logs.length);
             
             // Parsear el evento para ver el destinatario
             if (receipt.logs && receipt.logs.length > 0) {
@@ -138,7 +175,17 @@ export default function SecureMessageModal({
                     console.log("No se pudo parsear el evento:", e);
                 }
             }
-            
+
+            console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log("✅ PROCESO DE ENCRIPTACIÓN Y ENVÍO COMPLETADO");
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            console.log("📊 Resumen:");
+            console.log("  ✓ Mensaje encriptado con éxito");
+            console.log("  ✓ Almacenado en localStorage con hash:", ipfsLikeHash);
+            console.log("  ✓ Transacción confirmada en blockchain");
+            console.log("  ✓ Destinatario:", addresses.trim());
+            console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
             toast.success("Mensaje enviado exitosamente");
 
             // Limpiar el formulario y cerrar el modal
