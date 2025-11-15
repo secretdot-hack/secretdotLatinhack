@@ -870,7 +870,7 @@ export default function Dashboard() {
                     onClick={fetchAndDecryptMessages}
                     disabled={loadingMessages}
                     size="sm"
-                    variant="outline"
+                    variant="default"
                     className="border-slate-700 hover:bg-slate-800 hover:text-emerald-400 hover:border-emerald-500/50 transition-all duration-200"
                   >
                     {loadingMessages ? (
