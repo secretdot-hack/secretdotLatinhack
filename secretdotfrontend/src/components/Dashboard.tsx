@@ -704,7 +704,7 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-900/50 border border-slate-800/50 p-1 rounded-xl mb-6">
+          <TabsList className="grid w-full h-full grid-cols-2 bg-slate-900/50 border border-slate-800/50 p-1 rounded-xl mb-6">
             <TabsTrigger
               value="inbox"
               className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-slate-400 
