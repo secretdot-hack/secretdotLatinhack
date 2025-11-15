@@ -530,7 +530,6 @@ export default function Dashboard() {
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
                 };
             } catch (error: any) {
-<<<<<<< HEAD
                 console.error("\n❌ ERROR EN LA DESENCRIPTACIÓN");
                 console.error("  Mensaje:", error?.message);
                 console.error("  Código:", error?.code);
@@ -549,36 +548,6 @@ export default function Dashboard() {
                     sender: message.from,
                     decryptedMessage: DASHBOARD_COPY.messages.messages.decryptError,
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString()
-=======
-                console.error("Error al descifrar el mensaje:", error);
-                
-                // Detectar el tipo de error
-                let errorReason = "Error desconocido";
-                let errorDetails = "";
-                
-                if (error?.message?.includes("User denied")) {
-                    errorReason = "Descifrado cancelado por el usuario";
-                    errorDetails = "El usuario rechazó la solicitud de descifrado en MetaMask.";
-                } else if (error?.message?.includes("decrypt")) {
-                    errorReason = "Clave de descifrado incorrecta";
-                } else if (error?.message?.includes("parse") || error?.message?.includes("JSON")) {
-                    errorReason = "Mensaje corrupto";
-                    errorDetails = "Los datos del mensaje están corruptos o tienen un formato inválido.";
-                } else {
-                    errorReason = "Error al procesar el mensaje";
-                    errorDetails = error?.message || "Ocurrió un error inesperado al intentar descifrar el mensaje.";
-                }
-                
-                return { 
-                    sender: message.from, 
-                    decryptedMessage: null,
-                    hasError: true,
-                    errorReason,
-                    errorDetails,
-                    errorStack: error?.stack,
-                    timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
-                    ipfsHash: message.ipfs
->>>>>>> baba878322f882379f3b83ade38d2efc65e465ca
                 };
             }
         });
