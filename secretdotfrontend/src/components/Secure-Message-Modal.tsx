@@ -129,13 +129,9 @@ export default function SecureMessageModal({
 
             // SecretDot.sol usa send(address to, string calldata h)
             const tx = await signedContract.send(addresses.trim(), ipfsLikeHash);
-<<<<<<< HEAD
             console.log("\n⏳ Transacción enviada a la red");
             console.log("  Hash de la transacción:", tx.hash);
             toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
-=======
-            console.log("✅ Transacción enviada:", tx.hash);
->>>>>>> baba878322f882379f3b83ade38d2efc65e465ca
 
             const receipt = await tx.wait();
             console.log("\n✅ TRANSACCIÓN CONFIRMADA EN LA BLOCKCHAIN");
