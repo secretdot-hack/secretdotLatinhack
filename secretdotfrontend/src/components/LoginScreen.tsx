@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Shield, Wallet, Lock, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
+import { InlineLoader, FullScreenLoader } from "./ui/loader"
 import { ASSET_HUB_CONFIG } from "../utils/ether";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -196,14 +197,18 @@ export default function LoginScreen() {
                 variant="outline"
                 className="w-full border-gray-600 bg-gray-700/50 hover:bg-gray-700 text-white h-12 text-base font-medium"
               >
-                <Wallet className="w-5 h-5 text-orange-400" />
-                {/* <img
-                  src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg"
-                  alt="MetaMask"
-                  className="w-5 h-5"
-                /> */}
-                <span>MetaMask</span>
-                <ArrowRight className="w-4 h-4" />
+                {isConnecting ? (
+                  <>
+                    <InlineLoader size={20} />
+                    <span>Conectando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-5 h-5 text-orange-400" />
+                    <span>MetaMask</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </Button>
 
               {/* Other Wallets */}
@@ -239,6 +244,11 @@ export default function LoginScreen() {
             <span className="text-purple-400 hover:text-purple-300 cursor-pointer">Contacta soporte</span>
           </p>
         </div>
+
+        {/* Loader de conexión */}
+        {isConnecting && (
+          <FullScreenLoader message="Conectando con tu wallet..." />
+        )}
       </div>
     </div>
   )

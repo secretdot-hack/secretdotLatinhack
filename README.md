@@ -57,6 +57,30 @@ SecretDot permite a cualquier usuario compartir información confidencial utiliz
 - **Polkadot** – para contratos inteligentes e interoperabilidad entre blockchains.
 - **Web3 / Polkadot.js** – para conectar con wallets.
 - **Criptografía en cliente (JS)** – para encriptar datos antes de enviarlos.
+- **Next.js 15** – framework React para el frontend.
+- **Tailwind CSS** – para estilos y diseño responsivo.
+
+---
+
+## 🎨 UI/UX Components
+
+### 🌀 Loader Animado Web3
+
+SecretDot incluye un loader animado personalizado inspirado en el diseño geométrico del logo, con 3 lóbulos tipo Polkadot.
+
+**Características:**
+- ✨ Diseño inspirado en el logo de SecretDot
+- 🎭 Animaciones suaves con pulsos por lóbulo
+- 📱 Responsive y escalable (SVG)
+- ♿ Compatible con `prefers-reduced-motion`
+- 🎨 Dos variantes: verde emerald y gradiente Polkadot
+
+**Vista previa rápida:**
+- Abre `secretdotfrontend/public/loader-preview.html` en tu navegador
+- O visita `/loader-demo` cuando la app esté corriendo
+
+**Documentación completa:**
+- Ver `secretdotfrontend/LOADER_README.md` para ejemplos de código y uso
 
 ---
 

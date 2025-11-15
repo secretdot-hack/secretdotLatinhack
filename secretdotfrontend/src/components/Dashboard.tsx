@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { Badge } from "./ui/badge"
 import { Avatar, AvatarFallback } from "./ui/avatar"
 import { MessageSkeletonList } from "./ui/message-skeleton"
+import { Loader, FullScreenLoader, InlineLoader } from "./ui/loader"
 import { getContract } from "~/utils/contract"
 import { getSignedContract } from "~/utils/contract"
 import { ethers } from "ethers"
@@ -163,6 +164,7 @@ export default function Dashboard() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [registeringKey, setRegisteringKey] = useState(false);
 
   useEffect(() => {    
     // Recupera los datos de la wallet conectada
@@ -316,6 +318,7 @@ export default function Dashboard() {
 
   const handleMakePublicKey = async () => {
     try {
+      setRegisteringKey(true);
       console.log("Registrando clave pública en la blockchain...");
 
       // Verificar que tenemos la clave pública
@@ -333,9 +336,7 @@ export default function Dashboard() {
       // Verificar que estamos en la red correcta
       const correctNetwork = await isCorrectNetwork();
       if (!correctNetwork) {
-        toast.loading(DASHBOARD_COPY.messages.network.switching);
         const switched = await addPaseoNetwork();
-        toast.dismiss();
         if (!switched) {
           toast.error(DASHBOARD_COPY.messages.network.switchError);
           return;
@@ -357,7 +358,6 @@ export default function Dashboard() {
         // Ejecutar la transacción - SecretDot.sol usa setKey()
         const tx = await signedContract.setKey(publicKey);
         console.log("Transacción enviada:", tx.hash);
-        toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
         
         // Esperar confirmación
         const receipt = await tx.wait();
@@ -375,7 +375,8 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error al registrar la clave pública:", error);
       toast.error(DASHBOARD_COPY.encryptionKey.keyRegistrationError);
-      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setRegisteringKey(false);
     }
   }
 
@@ -607,9 +608,17 @@ export default function Dashboard() {
                   {DASHBOARD_COPY.encryptionKey.description}
                 </AlertDescription>
                 <div className="flex gap-3">
-                  <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white hover-lift">
-                    <Key className="h-4 w-4 mr-2" />
-                    {DASHBOARD_COPY.encryptionKey.button}
+                  <Button 
+                    onClick={handleMakePublicKey} 
+                    disabled={registeringKey}
+                    className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white hover-lift disabled:opacity-50"
+                  >
+                    {registeringKey ? (
+                      <InlineLoader size={16} className="mr-2" />
+                    ) : (
+                      <Key className="h-4 w-4 mr-2" />
+                    )}
+                    {registeringKey ? "Registrando..." : DASHBOARD_COPY.encryptionKey.button}
                   </Button>
                   <Button 
                     onClick={() => setOnboardingOpen(true)} 
@@ -634,12 +643,21 @@ export default function Dashboard() {
                     variant="outline"
                     className="border-slate-700 hover:bg-slate-800 hover-lift"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingMessages ? 'animate-spin' : ''}`} />
+                    {loadingMessages ? (
+                      <InlineLoader size={16} className="mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
                     {loadingMessages ? DASHBOARD_COPY.inbox.refreshingButton : DASHBOARD_COPY.inbox.refreshButton}
                   </Button>
                 </div>
                 {loadingMessages ? (
-                  <MessageSkeletonList count={3} />
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader size={100} />
+                    <p className="text-slate-400 text-sm font-mono animate-pulse">
+                      Descargando y descifrando mensajes...
+                    </p>
+                  </div>
                 ) : decryptedMessages.length === 0 ? (
                   <div className="text-center py-8 text-slate-400 animate-fade-in-up">
                     <Inbox className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -759,6 +777,11 @@ export default function Dashboard() {
 
         {/* Secure Message Modal */}
         <SecureMessageModal open={modalOpen} onOpenChange={setModalOpen} />
+
+        {/* Loader de registro de clave */}
+        {registeringKey && (
+          <FullScreenLoader message="Registrando tu clave en la blockchain..." />
+        )}
       </div>
     </div>
   )

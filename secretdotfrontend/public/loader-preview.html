@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecretDot Loader Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(to right, #10b981, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .card h2 {
+      color: #10b981;
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+    }
+
+    .loader-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 150px;
+    }
+
+    .description {
+      margin-top: 1rem;
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .code {
+      margin-top: 1rem;
+      background: #0f172a;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #06b6d4;
+      text-align: left;
+      overflow-x: auto;
+    }
+
+    /* Loader Animations */
+    @keyframes loader-rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes loader-pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    
+    @keyframes loader-ellipse-fade {
+      0%, 100% { 
+        stroke-width: 1;
+        opacity: 0.3;
+      }
+      50% { 
+        stroke-width: 2;
+        opacity: 0.8;
+      }
+    }
+    
+    .loader-svg {
+      animation: loader-rotate 3s linear infinite;
+    }
+    
+    .loader-lobe-1 {
+      animation: loader-pulse 2s ease-in-out infinite;
+      transform-origin: center;
+    }
+    
+    .loader-lobe-2 {
+      animation: loader-pulse 2s ease-in-out infinite;
+      animation-delay: 0.666s;
+      transform-origin: center;
+    }
+    
+    .loader-lobe-3 {
+      animation: loader-pulse 2s ease-in-out infinite;
+      animation-delay: 1.333s;
+      transform-origin: center;
+    }
+    
+    .loader-ellipse-path {
+      animation: loader-ellipse-fade 2s ease-in-out infinite;
+    }
+
+    /* Polkadot Loader */
+    @keyframes polkadot-rotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes polkadot-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    
+    @keyframes polkadot-ellipse-fade {
+      0%, 100% { 
+        stroke-width: 1;
+        opacity: 0.4;
+      }
+      50% { 
+        stroke-width: 2.5;
+        opacity: 1;
+      }
+    }
+    
+    .polkadot-loader-svg {
+      animation: polkadot-rotate 3s linear infinite;
+      filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
+    }
+    
+    .polkadot-lobe-1 {
+      animation: polkadot-pulse 2s ease-in-out infinite;
+      transform-origin: center;
+    }
+    
+    .polkadot-lobe-2 {
+      animation: polkadot-pulse 2s ease-in-out infinite;
+      animation-delay: 0.666s;
+      transform-origin: center;
+    }
+    
+    .polkadot-lobe-3 {
+      animation: polkadot-pulse 2s ease-in-out infinite;
+      animation-delay: 1.333s;
+      transform-origin: center;
+    }
+    
+    .polkadot-ellipse-path {
+      animation: polkadot-ellipse-fade 2s ease-in-out infinite;
+    }
+
+    .gradient-text {
+      background: linear-gradient(to right, #ec4899, #a855f7, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌀 SecretDot Loader</h1>
+    <p class="subtitle">Loader animado estilo Web3 inspirado en el diseño geométrico del logo</p>
+
+    <div class="grid">
+      <!-- Loader Básico - Pequeño -->
+      <div class="card">
+        <h2>Loader Pequeño</h2>
+        <div class="loader-wrapper">
+          <svg width="60" height="60" viewBox="-150 -150 300 300" class="loader-svg" style="color: #10b981;">
+            <g class="loader-lobe-1"></g>
+            <g class="loader-lobe-2"></g>
+            <g class="loader-lobe-3"></g>
+          </svg>
+        </div>
+        <p class="description">40px - Ideal para indicadores pequeños</p>
+        <div class="code">&lt;Loader size={40} /&gt;</div>
+      </div>
+
+      <!-- Loader Básico - Mediano -->
+      <div class="card">
+        <h2>Loader Mediano</h2>
+        <div class="loader-wrapper">
+          <svg width="80" height="80" viewBox="-150 -150 300 300" class="loader-svg" style="color: #10b981;">
+            <!-- Los lóbulos se agregan dinámicamente con JS -->
+            <g class="loader-lobe-1" id="lobe-1"></g>
+            <g class="loader-lobe-2" id="lobe-2"></g>
+            <g class="loader-lobe-3" id="lobe-3"></g>
+          </svg>
+        </div>
+        <p class="description">80px (default) - Perfecto para la mayoría de casos</p>
+        <div class="code">&lt;Loader /&gt;</div>
+      </div>
+
+      <!-- Loader Básico - Grande -->
+      <div class="card">
+        <h2>Loader Grande</h2>
+        <div class="loader-wrapper">
+          <svg width="120" height="120" viewBox="-150 -150 300 300" class="loader-svg" style="color: #10b981;">
+            <g class="loader-lobe-1" id="lobe-1-large"></g>
+            <g class="loader-lobe-2" id="lobe-2-large"></g>
+            <g class="loader-lobe-3" id="lobe-3-large"></g>
+          </svg>
+        </div>
+        <p class="description">120px - Para pantallas completas</p>
+        <div class="code">&lt;Loader size={120} /&gt;</div>
+      </div>
+
+      <!-- Loader Polkadot -->
+      <div class="card">
+        <h2 class="gradient-text">Loader Polkadot</h2>
+        <div class="loader-wrapper">
+          <svg width="100" height="100" viewBox="-150 -150 300 300" class="polkadot-loader-svg">
+            <defs>
+              <linearGradient id="polkadot-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#a855f7;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <g class="polkadot-lobe-1" id="polkadot-lobe-1"></g>
+            <g class="polkadot-lobe-2" id="polkadot-lobe-2"></g>
+            <g class="polkadot-lobe-3" id="polkadot-lobe-3"></g>
+          </svg>
+        </div>
+        <p class="description">Variante con gradiente rosa-púrpura-cyan</p>
+        <div class="code">&lt;PolkadotLoader size={100} /&gt;</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 2rem;">
+      <h2>✨ Características</h2>
+      <div class="description" style="text-align: left; max-width: 800px; margin: 0 auto;">
+        <ul style="list-style: none; padding: 0;">
+          <li style="margin-bottom: 0.5rem;">✅ Diseño inspirado en el logo de SecretDot (3 lóbulos geométricos)</li>
+          <li style="margin-bottom: 0.5rem;">✅ Animaciones suaves con pulsos independientes por lóbulo</li>
+          <li style="margin-bottom: 0.5rem;">✅ Rotación continua del conjunto completo</li>
+          <li style="margin-bottom: 0.5rem;">✅ Compatible con <code>prefers-reduced-motion</code></li>
+          <li style="margin-bottom: 0.5rem;">✅ Dos variantes: verde emerald y gradiente Polkadot</li>
+          <li style="margin-bottom: 0.5rem;">✅ Totalmente responsive y escalable (SVG)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Función para crear las elipses del loader
+    function createLoaderEllipses(svgElement, lobeIdPrefix, isPolkadot = false) {
+      const lobeAngles = [
+        Math.PI / 2,
+        Math.PI / 2 + (2 * Math.PI / 3),
+        Math.PI / 2 + (4 * Math.PI / 3),
+      ];
+
+      const nEllipses = 12;
+      const rx = 60;
+      const ry = 35;
+      const R = 90;
+
+      lobeAngles.forEach((baseAngle, lobeIndex) => {
+        const lobeGroup = svgElement.querySelector(`#${lobeIdPrefix}-${lobeIndex + 1}`);
+        if (!lobeGroup) return;
+
+        for (let k = 0; k < nEllipses; k++) {
+          const frac = k / (nEllipses - 1);
+          const cx = R * Math.cos(baseAngle) * frac;
+          const cy = R * Math.sin(baseAngle) * frac;
+          const theta = baseAngle + (frac - 0.5) * 1.2;
+          const rotateDeg = (theta * 180) / Math.PI;
+
+          const ellipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+          ellipse.setAttribute("cx", cx);
+          ellipse.setAttribute("cy", cy);
+          ellipse.setAttribute("rx", rx);
+          ellipse.setAttribute("ry", ry);
+          ellipse.setAttribute("fill", "none");
+          ellipse.setAttribute("stroke", isPolkadot ? "url(#polkadot-gradient)" : "currentColor");
+          ellipse.setAttribute("stroke-width", "1.5");
+          ellipse.setAttribute("transform", `rotate(${rotateDeg} ${cx} ${cy})`);
+          ellipse.setAttribute("opacity", 0.3 + (frac * 0.7));
+          ellipse.classList.add(isPolkadot ? "polkadot-ellipse-path" : "loader-ellipse-path");
+          ellipse.style.animationDelay = `${(lobeIndex * 0.15) + (k * 0.03)}s`;
+
+          lobeGroup.appendChild(ellipse);
+        }
+      });
+    }
+
+    // Crear elipses para todos los loaders
+    document.addEventListener("DOMContentLoaded", () => {
+      // Loader mediano
+      const mediumLoader = document.querySelectorAll('.loader-svg')[1];
+      if (mediumLoader) createLoaderEllipses(mediumLoader, 'lobe');
+
+      // Loader grande
+      const largeLoader = document.querySelectorAll('.loader-svg')[2];
+      if (largeLoader) createLoaderEllipses(largeLoader, 'lobe');
+
+      // Loader pequeño
+      const smallLoader = document.querySelectorAll('.loader-svg')[0];
+      if (smallLoader) createLoaderEllipses(smallLoader, 'lobe');
+
+      // Polkadot loader
+      const polkadotLoader = document.querySelector('.polkadot-loader-svg');
+      if (polkadotLoader) createLoaderEllipses(polkadotLoader, 'polkadot-lobe', true);
+    });
+  </script>
+</body>
+</html>
+
