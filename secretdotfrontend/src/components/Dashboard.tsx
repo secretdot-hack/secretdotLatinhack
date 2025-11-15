@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import SecureMessageModal from "./Secure-Message-Modal"
 import OnboardingModal from "./OnboardingModal"
-import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw } from "lucide-react"
+import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw, AlertTriangle, ChevronDown, ChevronUp, RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
@@ -165,6 +165,9 @@ export default function Dashboard() {
   const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [registeringKey, setRegisteringKey] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
+  const [sentCount, setSentCount] = useState(0);
+  const [expandedErrors, setExpandedErrors] = useState<Set<number>>(new Set());
 
   useEffect(() => {    
     // Recupera los datos de la wallet conectada
@@ -275,6 +278,16 @@ export default function Dashboard() {
       fetchAndDecryptMessages();
     }
   }, [hasPublicKey, account]);
+
+  // Actualizar contador de mensajes enviados
+  useEffect(() => {
+    setSentCount(sentMessages.length);
+  }, []);
+
+  // Actualizar contador de inbox cuando cambie el estado
+  useEffect(() => {
+    setInboxCount(decryptedMessages.length);
+  }, [decryptedMessages]);
 
   // Mostrar el modal de onboarding cuando no hay clave pública y hay cuenta conectada
   useEffect(() => {
@@ -481,12 +494,36 @@ export default function Dashboard() {
                     decryptedMessage: decryptedMessage,
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
                 };
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error al descifrar el mensaje:", error);
+                
+                // Detectar el tipo de error
+                let errorReason = "Error desconocido";
+                let errorDetails = "";
+                
+                if (error?.message?.includes("User denied")) {
+                    errorReason = "Descifrado cancelado por el usuario";
+                    errorDetails = "El usuario rechazó la solicitud de descifrado en MetaMask.";
+                } else if (error?.message?.includes("decrypt")) {
+                    errorReason = "Clave de descifrado incorrecta";
+                    errorDetails = "El mensaje fue cifrado con una clave pública diferente a la tuya. Esto puede ocurrir si enviaste el mensaje a tu propia dirección sin publicar tu clave pública primero.";
+                } else if (error?.message?.includes("parse") || error?.message?.includes("JSON")) {
+                    errorReason = "Mensaje corrupto";
+                    errorDetails = "Los datos del mensaje están corruptos o tienen un formato inválido.";
+                } else {
+                    errorReason = "Error al procesar el mensaje";
+                    errorDetails = error?.message || "Ocurrió un error inesperado al intentar descifrar el mensaje.";
+                }
+                
                 return { 
                     sender: message.from, 
-                    decryptedMessage: DASHBOARD_COPY.messages.messages.decryptError, 
-                    timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString()
+                    decryptedMessage: null,
+                    hasError: true,
+                    errorReason,
+                    errorDetails,
+                    errorStack: error?.stack,
+                    timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
+                    ipfsHash: message.ipfs
                 };
             }
         });
@@ -494,6 +531,7 @@ export default function Dashboard() {
         const decryptedMessages = await Promise.all(decryptedMessagesPromises);
         console.log("Mensajes descifrados:", decryptedMessages);
         setDecryptedMessages(decryptedMessages);
+        setInboxCount(decryptedMessages.length);
         toast.success("Mensajes obtenidos y descifrados exitosamente");
     } catch (error: any) {
         console.error("❌ Error al obtener mensajes:", error);
@@ -530,6 +568,69 @@ export default function Dashboard() {
     if (diffInHours < 1) return "Hace unos minutos"
     if (diffInHours < 24) return `Hace ${diffInHours}h`
     return date.toLocaleDateString()
+  }
+
+  const retryDecryptMessage = async (messageIndex: number) => {
+    try {
+      const message = decryptedMessages[messageIndex];
+      if (!message || !message.ipfsHash) {
+        toast.error("No se puede reintentar: datos del mensaje no disponibles");
+        return;
+      }
+
+      toast.loading("Reintentando descifrado...");
+
+      // Buscar el mensaje cifrado en localStorage
+      const storageKey = `secretdot_msg_${message.ipfsHash}`;
+      const encryptedMessage = localStorage.getItem(storageKey);
+
+      if (!encryptedMessage) {
+        toast.dismiss();
+        toast.error("Mensaje cifrado no encontrado en almacenamiento local");
+        return;
+      }
+
+      // Intentar descifrar nuevamente
+      if (!window.ethereum) {
+        toast.dismiss();
+        toast.error("MetaMask no está disponible");
+        return;
+      }
+
+      const encryptedData = JSON.parse(encryptedMessage);
+      const decryptedMessage = await window.ethereum.request({
+        method: "eth_decrypt",
+        params: [JSON.stringify(encryptedData), account],
+      });
+
+      // Actualizar el mensaje en el array
+      const updatedMessages = [...decryptedMessages];
+      updatedMessages[messageIndex] = {
+        ...message,
+        decryptedMessage,
+        hasError: false,
+        errorReason: undefined,
+        errorDetails: undefined,
+        errorStack: undefined,
+      };
+      
+      setDecryptedMessages(updatedMessages);
+      toast.dismiss();
+      toast.success("¡Mensaje descifrado exitosamente!");
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error("No se pudo descifrar el mensaje: " + (error?.message || "Error desconocido"));
+    }
+  }
+
+  const toggleErrorDetails = (messageIndex: number) => {
+    const newExpanded = new Set(expandedErrors);
+    if (newExpanded.has(messageIndex)) {
+      newExpanded.delete(messageIndex);
+    } else {
+      newExpanded.add(messageIndex);
+    }
+    setExpandedErrors(newExpanded);
   }
 
   return (
@@ -576,25 +677,57 @@ export default function Dashboard() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-900 border border-slate-800">
+          <TabsList className="grid w-full grid-cols-2 bg-blue-900 border border-slate-800 p-1.5 rounded-lg">
             <TabsTrigger
               value="inbox"
-              className="data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-400 flex items-center gap-2"
+              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-md text-slate-400 
+                bg-transparent border border-transparent
+                transition-all duration-300
+                data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-cyan-500/20 
+                data-[state=active]:text-emerald-400 data-[state=active]:border-emerald-500/50
+                data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/20
+                data-[state=inactive]:hover:bg-slate-800 data-[state=inactive]:hover:text-slate-200 
+                data-[state=inactive]:hover:border-slate-700
+                data-[state=active]:hover:from-emerald-500/30 data-[state=active]:hover:to-cyan-500/30"
             >
               <Inbox className="h-4 w-4" />
-              {DASHBOARD_COPY.tabs.inbox}
+              <span className="font-medium">{DASHBOARD_COPY.tabs.inbox}</span>
+              {inboxCount > 0 && (
+                <Badge 
+                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 
+                    animate-[scale-in_0.3s_ease-out] font-bold"
+                >
+                  {inboxCount}
+                </Badge>
+              )}
               {!hasPublicKey && (
-                <Badge variant="destructive" className="ml-2 h-5 text-xs">
+                <Badge variant="destructive" className="ml-1 h-5 text-xs animate-pulse">
                   !
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="sent"
-              className="text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-emerald-400 flex items-center gap-2"
+              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-md text-slate-400
+                bg-transparent border border-transparent
+                transition-all duration-300
+                data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 
+                data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/50
+                data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/20
+                data-[state=inactive]:hover:bg-slate-800 data-[state=inactive]:hover:text-slate-200 
+                data-[state=inactive]:hover:border-slate-700
+                data-[state=active]:hover:from-cyan-500/30 data-[state=active]:hover:to-blue-500/30"
             >
-              <Send className="h-4 w-4 text-slate-400" />
-              {DASHBOARD_COPY.tabs.sent}
+              <Send className="h-4 w-4" />
+              <span className="font-medium">{DASHBOARD_COPY.tabs.sent}</span>
+              {sentCount > 0 && (
+                <Badge 
+                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-cyan-500/20 text-cyan-400 border-cyan-500/30 
+                    animate-[scale-in_0.3s_ease-out] font-bold"
+                >
+                  {sentCount}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -632,16 +765,34 @@ export default function Dashboard() {
               </Alert>
             ) : (
               <div className="space-y-4">
+                {/* Microcopy contextual de privacidad */}
+                <div className="flex items-center justify-between gap-4 p-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-lg mb-4 animate-fade-in-up">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-emerald-400 animate-lock-pulse" />
+                    <p className="text-sm text-emerald-300 font-medium">
+                      Tus mensajes se descifran localmente
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-400 hidden sm:block">
+                    Nadie más puede ver esto
+                  </p>
+                </div>
+
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-slate-200">
-                    {DASHBOARD_COPY.inbox.title} ({decryptedMessages.length})
+                  <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                    {DASHBOARD_COPY.inbox.title}
+                    {inboxCount > 0 && (
+                      <span className="text-sm font-normal text-slate-400">
+                        ({inboxCount})
+                      </span>
+                    )}
                   </h3>
                   <Button
                     onClick={fetchAndDecryptMessages}
                     disabled={loadingMessages}
                     size="sm"
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800 hover-lift"
+                    className="border-slate-700 hover:bg-slate-800 hover-lift transition-all duration-200 hover:border-emerald-500/50"
                   >
                     {loadingMessages ? (
                       <InlineLoader size={16} className="mr-2" />
@@ -659,35 +810,165 @@ export default function Dashboard() {
                     </p>
                   </div>
                 ) : decryptedMessages.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 animate-fade-in-up">
-                    <Inbox className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>{DASHBOARD_COPY.inbox.emptyState}</p>
+                  <div className="text-center py-16 px-6 animate-fade-in-up">
+                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 max-w-md mx-auto">
+                      <Inbox className="h-16 w-16 mx-auto mb-4 text-slate-600" />
+                      <h4 className="text-lg font-semibold text-slate-300 mb-2">
+                        {DASHBOARD_COPY.inbox.emptyState}
+                      </h4>
+                      <p className="text-sm text-slate-400 mb-4">
+                        Cuando recibas mensajes privados, aparecerán aquí
+                      </p>
+                      <div className="flex flex-col gap-2 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 justify-center">
+                          <Shield className="h-3 w-3 text-emerald-500" />
+                          <span>Descifrado end-to-end</span>
+                        </div>
+                        <div className="flex items-center gap-2 justify-center">
+                          <Key className="h-3 w-3 text-cyan-500" />
+                          <span>Solo tú puedes leerlos</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   decryptedMessages.map((message, index) => (
                     <Card
                       key={index}
-                      className={`bg-slate-900/50 border-slate-800 hover:border-slate-700 hover-glow transition-all animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}`}
+                      className={`group bg-slate-900/50 border-slate-800 ${
+                        message.hasError 
+                          ? 'hover:border-amber-500/30 border-amber-500/20' 
+                          : 'hover:border-emerald-500/30'
+                      } hover:bg-slate-900/70 
+                        transition-all duration-300 animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}
+                        hover:shadow-lg ${
+                          message.hasError 
+                            ? 'hover:shadow-amber-500/10' 
+                            : 'hover:shadow-emerald-500/10'
+                        } hover:-translate-y-0.5`}
                     >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <Avatar className="h-10 w-10 bg-slate-800">
-                            <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-cyan-400 text-slate-900 font-bold">
-                              <Shield className="h-3 w-3 text-black" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-slate-200">{formatAddress(message.sender)}</span>
-                              <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />
+                    <CardContent className="p-3.5">
+                      <div className="flex items-start gap-3">
+                        <Avatar className={`h-9 w-9 bg-slate-800 ring-2 ring-slate-800 ${
+                          message.hasError 
+                            ? 'group-hover:ring-amber-500/30' 
+                            : 'group-hover:ring-emerald-500/30'
+                        } transition-all`}>
+                          <AvatarFallback className={`${
+                            message.hasError 
+                              ? 'bg-gradient-to-br from-amber-400 to-red-400' 
+                              : 'bg-gradient-to-br from-emerald-400 to-cyan-400'
+                          } text-slate-900 font-bold text-xs`}>
+                            {message.sender.slice(2, 4).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-semibold text-slate-200 text-sm ${
+                                message.hasError 
+                                  ? 'group-hover:text-amber-400' 
+                                  : 'group-hover:text-emerald-400'
+                              } transition-colors`}>
+                                {formatAddress(message.sender)}
+                              </span>
+                              {message.hasError ? (
+                                <AlertTriangle className="h-3 w-3 text-amber-400 animate-pulse" />
+                              ) : (
+                                <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />
+                              )}
                             </div>
-                            <h3 className="font-medium text-white mb-1">{DASHBOARD_COPY.inbox.decryptedMessage}</h3>
-                            <p className="text-sm text-slate-400">{message.decryptedMessage}</p>
+                            <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
+                          
+                          {message.hasError ? (
+                            <div className="space-y-3">
+                              {/* Error Message */}
+                              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-amber-300">
+                                      {message.errorReason}
+                                    </p>
+                                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                                      {message.errorDetails}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                {/* Tutorial tip */}
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mt-2">
+                                  <div className="flex items-start gap-2">
+                                    <Key className="h-3 w-3 text-blue-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-xs text-blue-300 leading-relaxed">
+                                      <span className="font-semibold">💡 Tip:</span> Esto puede ocurrir si enviaste el mensaje a tu propia dirección sin publicar tu clave pública primero.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => retryDecryptMessage(index)}
+                                    className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs px-3"
+                                  >
+                                    <RotateCcw className="h-3 w-3 mr-1" />
+                                    Reintentar descifrado
+                                  </Button>
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => toggleErrorDetails(index)}
+                                    className="h-7 text-xs px-2 text-slate-400 hover:text-slate-200"
+                                  >
+                                    {expandedErrors.has(index) ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Ocultar detalles
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        Ver detalles técnicos
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+
+                                {/* Technical details (collapsible) */}
+                                {expandedErrors.has(index) && (
+                                  <div className="mt-2 p-2 bg-slate-950/50 border border-slate-700 rounded text-xs font-mono space-y-1 animate-fade-in-up">
+                                    <div className="text-slate-400">
+                                      <span className="text-slate-500">IPFS Hash:</span> {message.ipfsHash || 'N/A'}
+                                    </div>
+                                    <div className="text-slate-400">
+                                      <span className="text-slate-500">Sender:</span> {message.sender}
+                                    </div>
+                                    <div className="text-slate-400">
+                                      <span className="text-slate-500">Timestamp:</span> {message.timestamp}
+                                    </div>
+                                    {message.errorStack && (
+                                      <details className="mt-2">
+                                        <summary className="cursor-pointer text-slate-500 hover:text-slate-300">
+                                          Stack trace
+                                        </summary>
+                                        <pre className="mt-1 text-[10px] text-slate-500 whitespace-pre-wrap break-all">
+                                          {message.errorStack}
+                                        </pre>
+                                      </details>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-300 leading-relaxed">
+                              {message.decryptedMessage}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -701,58 +982,97 @@ export default function Dashboard() {
           {/* Sent Tab */}
           <TabsContent value="sent" className="mt-6">
             <div className="space-y-4">
-              {sentMessages.map((message, index) => (
-                <Card
-                  key={message.id}
-                  className={`bg-slate-900/50 border-slate-800 hover:border-slate-700 hover-glow transition-all animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <Avatar className="h-10 w-10 bg-slate-800">
-                          <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-400 text-slate-900 font-bold">
-                            {message.to[0]}
+              {/* Microcopy contextual */}
+              <div className="flex items-center justify-between gap-4 p-3 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg mb-4 animate-fade-in-up">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-cyan-400" />
+                  <p className="text-sm text-cyan-300 font-medium">
+                    Cifrado antes de enviar
+                  </p>
+                </div>
+                <p className="text-xs text-slate-400 hidden sm:block">
+                  Privacidad garantizada
+                </p>
+              </div>
+
+              {sentMessages.length === 0 ? (
+                <div className="text-center py-16 px-6 animate-fade-in-up">
+                  <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 max-w-md mx-auto">
+                    <Send className="h-16 w-16 mx-auto mb-4 text-slate-600" />
+                    <h4 className="text-lg font-semibold text-slate-300 mb-2">
+                      No has enviado mensajes aún
+                    </h4>
+                    <p className="text-sm text-slate-400 mb-4">
+                      Tus mensajes enviados aparecerán aquí
+                    </p>
+                    <div className="flex flex-col gap-2 text-xs text-slate-500">
+                      <div className="flex items-center gap-2 justify-center">
+                        <Shield className="h-3 w-3 text-cyan-500" />
+                        <span>Cifrado automático</span>
+                      </div>
+                      <div className="flex items-center gap-2 justify-center">
+                        <Key className="h-3 w-3 text-blue-500" />
+                        <span>Solo el destinatario puede leer</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                sentMessages.map((message, index) => (
+                  <Card
+                    key={message.id}
+                    className={`group bg-slate-900/50 border-slate-800 hover:border-cyan-500/30 hover:bg-slate-900/70 
+                      transition-all duration-300 animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}
+                      hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5`}
+                  >
+                    <CardContent className="p-3.5">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-9 w-9 bg-slate-800 ring-2 ring-slate-800 group-hover:ring-cyan-500/30 transition-all">
+                          <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-400 text-slate-900 font-bold text-xs">
+                            {message.to.slice(2, 4).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm text-slate-400">{DASHBOARD_COPY.sent.toLabel}</span>
-                            <span className="font-semibold text-slate-200">{formatAddress(message.to)}</span>
-                            {/* <span className="font-semibold text-slate-200">{message.toAlias}</span> */}
-                            {/* <span className="text-xs font-mono text-slate-500">{formatAddress(message.to)}</span> */}
-                            {message.encrypted && <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />}
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500">{DASHBOARD_COPY.sent.toLabel}</span>
+                              <span className="font-semibold text-slate-200 text-sm group-hover:text-cyan-400 transition-colors">
+                                {formatAddress(message.to)}
+                              </span>
+                              {message.encrypted && <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
+                              <Badge
+                                variant={message.status === "delivered" ? "default" : "secondary"}
+                                className={`text-xs transition-all ${
+                                  message.status === "delivered"
+                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse"
+                                }`}
+                              >
+                                {message.status === "delivered" ? (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    {DASHBOARD_COPY.sent.status.delivered}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {DASHBOARD_COPY.sent.status.pending}
+                                  </>
+                                )}
+                              </Badge>
+                            </div>
                           </div>
-                          <h3 className="font-medium text-slate-300 mb-1">{message.subject}</h3>
-                          <p className="text-sm text-slate-400 line-clamp-2">{message.preview}</p>
+                          <h3 className="font-medium text-slate-300 mb-1 text-sm">{message.subject}</h3>
+                          <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">{message.preview}</p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
-                        <Badge
-                          variant={message.status === "delivered" ? "default" : "secondary"}
-                          className={`text-xs ${
-                            message.status === "delivered"
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                              : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                          }`}
-                        >
-                          {message.status === "delivered" ? (
-                            <>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              {DASHBOARD_COPY.sent.status.delivered}
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3 w-3 mr-1" />
-                              {DASHBOARD_COPY.sent.status.pending}
-                            </>
-                          )}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>
