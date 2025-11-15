@@ -16,6 +16,7 @@ import { getSignedContract } from "~/utils/contract"
 import { ethers } from "ethers"
 import { Toaster, toast } from "react-hot-toast"
 import { addPaseoNetwork, isCorrectNetwork } from "~/utils/ether"
+import { Buffer } from "buffer"
 
 // Copy/Textos de la aplicación
 const DASHBOARD_COPY = {
@@ -425,73 +426,129 @@ export default function Dashboard() {
         }
 
         // Descifrar cada mensaje usando MetaMask
-        const decryptedMessagesPromises = messages.map(async (message: any) => {
+        const decryptedMessagesPromises = messages.map(async (message: any, index: number) => {
             try {
+                console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+                console.log(`🔓 INICIANDO DESENCRIPTACIÓN - Mensaje #${index + 1}`);
+                console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
                 const sender = message.from; // SecretDot.sol usa 'from' en lugar de 'sender'
-                
-                // El ipfs viene como string directo del contrato SecretDot.sol
                 const ipfsHash = message.ipfs;
-                
-                console.log(`Mensaje recibido del contrato:`, message);
-                console.log(`ipfsHash tipo:`, typeof ipfsHash);
-                console.log(`ipfsHash valor:`, ipfsHash);
-                console.log(`Hash procesado: ${ipfsHash}`);
+                const timestamp = message.t;
+
+                console.log("📨 Metadata del mensaje:");
+                console.log("  De (sender):", sender);
+                console.log("  Hash IPFS-like:", ipfsHash);
+                console.log("  Timestamp:", timestamp, "→", new Date(Number(timestamp) * 1000).toISOString());
 
                 // Buscar el mensaje cifrado en localStorage
-                // SecretDot.sol guarda el hash directamente como string (no keccak256)
                 const storageKey = `secretdot_msg_${ipfsHash}`;
-                console.log("Buscando mensaje en localStorage con clave:", storageKey);
-                
+                console.log("\n🔍 Buscando mensaje encriptado en localStorage...");
+                console.log("  Clave de búsqueda:", storageKey);
+
                 const encryptedMessage = localStorage.getItem(storageKey);
 
                 if (!encryptedMessage) {
-                    console.warn(`❌ Mensaje cifrado no encontrado para hash: ${ipfsHash}`);
-                    console.log(`Total de mensajes en localStorage:`, 
-                        Array.from({length: localStorage.length}, (_, i) => localStorage.key(i))
-                            .filter(k => k && k.startsWith('secretdot_msg_'))
-                    );
+                    console.warn("\n❌ MENSAJE NO ENCONTRADO EN LOCALSTORAGE");
+                    console.log("  Hash buscado:", ipfsHash);
+                    console.log("  Clave buscada:", storageKey);
+
+                    const allSecretDotKeys = Array.from({length: localStorage.length}, (_, i) => localStorage.key(i))
+                        .filter(k => k && k.startsWith('secretdot_msg_'));
+
+                    console.log(`  Total de mensajes SecretDot en localStorage: ${allSecretDotKeys.length}`);
+                    if (allSecretDotKeys.length > 0) {
+                        console.log("  Claves disponibles:", allSecretDotKeys);
+                    }
+                    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
                     return {
                         sender,
                         decryptedMessage: DASHBOARD_COPY.messages.messages.notFound,
-                        timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
+                        timestamp: new Date(Number(timestamp) * 1000).toISOString(),
                     };
                 }
 
-                console.log(`✅ Mensaje cifrado recuperado de localStorage`);
-
-                console.log("Mensaje cifrado recuperado de localStorage");
+                console.log("✅ Mensaje encriptado encontrado en localStorage");
+                console.log("  Longitud del mensaje:", encryptedMessage.length, "caracteres");
 
                 // El mensaje encriptado es un objeto JSON, lo parseamos
+                console.log("\n⚙️ Parseando mensaje encriptado...");
                 const encryptedData = JSON.parse(encryptedMessage);
+
+                console.log("📦 Estructura del mensaje encriptado:");
+                console.log("  - version:", encryptedData.version);
+                console.log("  - nonce:", encryptedData.nonce?.substring(0, 20) + "...");
+                console.log("  - ephemPublicKey:", encryptedData.ephemPublicKey?.substring(0, 20) + "...");
+                console.log("  - ciphertext (primeros 50 chars):", encryptedData.ciphertext?.substring(0, 50) + "...");
 
                 // Desencriptar usando MetaMask
                 if (!window.ethereum) {
                     throw new Error("MetaMask no disponible");
                 }
-                
+
+                console.log("\n🔐 Preparando desencriptación con MetaMask...");
+                console.log("  Cuenta que desencripta:", account);
+                console.log("  Algoritmo:", encryptedData.version);
+
+                // Convertir el objeto JSON a Buffer y luego a hex con prefijo 0x
+                // Según documentación de MetaMask: eth_decrypt espera formato hexadecimal
+                const buf = Buffer.from(JSON.stringify(encryptedData), 'utf8');
+                const encryptedHex = '0x' + buf.toString('hex');
+
+                console.log("  Formato convertido a hex (primeros 100 chars):", encryptedHex.substring(0, 100) + "...");
+                console.log("  Longitud total del hex:", encryptedHex.length, "caracteres");
+
+                console.log("\n⏳ Llamando a MetaMask eth_decrypt...");
                 const decryptedMessage = await window.ethereum.request({
                     method: "eth_decrypt",
-                    params: [JSON.stringify(encryptedData), account],
+                    params: [encryptedHex, account],
                 });
 
-                console.log(`Mensaje descifrado de ${sender}:`, decryptedMessage);
+                console.log("\n✅ DESENCRIPTACIÓN EXITOSA!");
+                console.log("  Mensaje original recuperado:", decryptedMessage);
+                console.log("  Remitente verificado:", sender);
+                console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
                 return {
                     sender,
                     decryptedMessage: decryptedMessage,
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
                 };
-            } catch (error) {
-                console.error("Error al descifrar el mensaje:", error);
-                return { 
-                    sender: message.from, 
-                    decryptedMessage: DASHBOARD_COPY.messages.messages.decryptError, 
+            } catch (error: any) {
+                console.error("\n❌ ERROR EN LA DESENCRIPTACIÓN");
+                console.error("  Mensaje:", error?.message);
+                console.error("  Código:", error?.code);
+                console.error("  Stack:", error?.stack);
+
+                if (error?.code === 4001) {
+                    console.error("  → Usuario rechazó la desencriptación en MetaMask");
+                } else if (error?.message?.includes("decrypt")) {
+                    console.error("  → Error de desencriptación - posible clave incorrecta");
+                } else if (error?.message?.includes("parse")) {
+                    console.error("  → Error de parseo - formato de mensaje incorrecto");
+                }
+                console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+                return {
+                    sender: message.from,
+                    decryptedMessage: DASHBOARD_COPY.messages.messages.decryptError,
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString()
                 };
             }
         });
 
+        console.log("\n⏳ Procesando todos los mensajes en paralelo...");
         const decryptedMessages = await Promise.all(decryptedMessagesPromises);
-        console.log("Mensajes descifrados:", decryptedMessages);
+
+        console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("✅ PROCESO DE DESENCRIPTACIÓN COMPLETADO");
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("📊 Resumen:");
+        console.log(`  Total de mensajes procesados: ${decryptedMessages.length}`);
+        console.log(`  Mensajes descifrados con éxito: ${decryptedMessages.filter(m => !m.decryptedMessage.includes('Error') && !m.decryptedMessage.includes('encontrado')).length}`);
+        console.log(`  Mensajes con error: ${decryptedMessages.filter(m => m.decryptedMessage.includes('Error') || m.decryptedMessage.includes('encontrado')).length}`);
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
         setDecryptedMessages(decryptedMessages);
         toast.success("Mensajes obtenidos y descifrados exitosamente");
     } catch (error: any) {
