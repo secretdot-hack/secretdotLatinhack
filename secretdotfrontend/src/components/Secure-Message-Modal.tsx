@@ -10,6 +10,7 @@ import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog"
 import { Shield, Lock, X, CheckCircle2, AlertCircle } from "lucide-react"
+import { InlineLoader, FullScreenLoader } from "./ui/loader"
 import { getContract } from "~/utils/contract"
 import { toast } from "react-hot-toast"
 import { ethers, keccak256, toUtf8Bytes } from "ethers";
@@ -29,9 +30,12 @@ export default function SecureMessageModal({
   const [message, setMessage] = useState("")
   const [addressValid, setAddressValid] = useState<null | boolean>(null)
   const [addressCheckLoading, setAddressCheckLoading] = useState(false)
+  const [sending, setSending] = useState(false)
 
   const handleSend = async () => {
     try {
+        setSending(true);
+        
         if (!window?.ethereum) {
             toast.error("MetaMask no está disponible");
             return;
@@ -40,9 +44,7 @@ export default function SecureMessageModal({
         // Verificar que estamos en la red correcta antes de enviar
         const correctNetwork = await isCorrectNetwork();
         if (!correctNetwork) {
-            toast.loading("Cambiando a la red Paseo...");
             const switched = await addPaseoNetwork();
-            toast.dismiss();
             if (!switched) {
                 toast.error("Por favor, cambia manualmente a la red Paseo Asset Hub TestNet en MetaMask");
                 return;
@@ -127,9 +129,13 @@ export default function SecureMessageModal({
 
             // SecretDot.sol usa send(address to, string calldata h)
             const tx = await signedContract.send(addresses.trim(), ipfsLikeHash);
+<<<<<<< HEAD
             console.log("\n⏳ Transacción enviada a la red");
             console.log("  Hash de la transacción:", tx.hash);
             toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
+=======
+            console.log("✅ Transacción enviada:", tx.hash);
+>>>>>>> baba878322f882379f3b83ade38d2efc65e465ca
 
             const receipt = await tx.wait();
             console.log("\n✅ TRANSACCIÓN CONFIRMADA EN LA BLOCKCHAIN");
@@ -197,6 +203,8 @@ export default function SecureMessageModal({
     } catch (error) {
         toast.error("Hubo un error al enviar el mensaje");
         console.error("Error detallado:", error);
+    } finally {
+        setSending(false);
     }
   }
 
@@ -316,10 +324,7 @@ export default function SecureMessageModal({
                 {addresses.trim() && (
                   <span className="absolute right-2 top-2 animate-fade-in-up">
                     {addressCheckLoading ? (
-                      <svg className="animate-spin h-5 w-5 text-slate-400" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                      </svg>
+                      <InlineLoader size={20} />
                     ) : addressValid === true ? (
                       <CheckCircle2 className="w-5 h-5 text-green-500 animate-fade-in-up" />
                     ) : addressValid === false ? (
@@ -352,16 +357,25 @@ export default function SecureMessageModal({
               </Button>
               <Button
                 onClick={handleSend}
-                  disabled={!message.trim() || !addresses.trim()}
+                disabled={!message.trim() || !addresses.trim() || sending}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 hover-lift"
               >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Enviar Seguro
+                {sending ? (
+                  <InlineLoader size={16} className="mr-2" />
+                ) : (
+                  <Shield className="w-4 h-4 mr-2" />
+                )}
+                {sending ? "Enviando..." : "Enviar Seguro"}
               </Button>
             </div>
           </CardContent>
         </Card>
       </DialogContent>
+
+      {/* Loader de envío */}
+      {sending && (
+        <FullScreenLoader message="Cifrando y enviando mensaje a la blockchain..." />
+      )}
     </Dialog>
     // </div>
   )

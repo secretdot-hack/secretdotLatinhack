@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import SecureMessageModal from "./Secure-Message-Modal"
 import OnboardingModal from "./OnboardingModal"
-import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw } from "lucide-react"
+import { Plus, Shield, Key, Clock, CheckCircle, Send, Inbox, RefreshCw, AlertTriangle, ChevronDown, ChevronUp, RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
@@ -11,6 +11,8 @@ import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { Badge } from "./ui/badge"
 import { Avatar, AvatarFallback } from "./ui/avatar"
 import { MessageSkeletonList } from "./ui/message-skeleton"
+import { Loader, FullScreenLoader, InlineLoader } from "./ui/loader"
+import { LogoSecretDot } from "./ui/logo-secretdot"
 import { getContract } from "~/utils/contract"
 import { getSignedContract } from "~/utils/contract"
 import { ethers } from "ethers"
@@ -164,6 +166,10 @@ export default function Dashboard() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [registeringKey, setRegisteringKey] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
+  const [sentCount, setSentCount] = useState(0);
+  const [expandedErrors, setExpandedErrors] = useState<Set<number>>(new Set());
 
   useEffect(() => {    
     // Recupera los datos de la wallet conectada
@@ -275,6 +281,16 @@ export default function Dashboard() {
     }
   }, [hasPublicKey, account]);
 
+  // Actualizar contador de mensajes enviados
+  useEffect(() => {
+    setSentCount(sentMessages.length);
+  }, []);
+
+  // Actualizar contador de inbox cuando cambie el estado
+  useEffect(() => {
+    setInboxCount(decryptedMessages.length);
+  }, [decryptedMessages]);
+
   // Mostrar el modal de onboarding cuando no hay clave pública y hay cuenta conectada
   useEffect(() => {
     if (!hasPublicKey && account && publicKey && !onboardingOpen) {
@@ -317,6 +333,7 @@ export default function Dashboard() {
 
   const handleMakePublicKey = async () => {
     try {
+      setRegisteringKey(true);
       console.log("Registrando clave pública en la blockchain...");
 
       // Verificar que tenemos la clave pública
@@ -334,9 +351,7 @@ export default function Dashboard() {
       // Verificar que estamos en la red correcta
       const correctNetwork = await isCorrectNetwork();
       if (!correctNetwork) {
-        toast.loading(DASHBOARD_COPY.messages.network.switching);
         const switched = await addPaseoNetwork();
-        toast.dismiss();
         if (!switched) {
           toast.error(DASHBOARD_COPY.messages.network.switchError);
           return;
@@ -358,7 +373,6 @@ export default function Dashboard() {
         // Ejecutar la transacción - SecretDot.sol usa setKey()
         const tx = await signedContract.setKey(publicKey);
         console.log("Transacción enviada:", tx.hash);
-        toast("Transacción enviada. Esperando confirmación...", { icon: "⏳" });
         
         // Esperar confirmación
         const receipt = await tx.wait();
@@ -376,7 +390,8 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error al registrar la clave pública:", error);
       toast.error(DASHBOARD_COPY.encryptionKey.keyRegistrationError);
-      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setRegisteringKey(false);
     }
   }
 
@@ -515,6 +530,7 @@ export default function Dashboard() {
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
                 };
             } catch (error: any) {
+<<<<<<< HEAD
                 console.error("\n❌ ERROR EN LA DESENCRIPTACIÓN");
                 console.error("  Mensaje:", error?.message);
                 console.error("  Código:", error?.code);
@@ -533,6 +549,36 @@ export default function Dashboard() {
                     sender: message.from,
                     decryptedMessage: DASHBOARD_COPY.messages.messages.decryptError,
                     timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString()
+=======
+                console.error("Error al descifrar el mensaje:", error);
+                
+                // Detectar el tipo de error
+                let errorReason = "Error desconocido";
+                let errorDetails = "";
+                
+                if (error?.message?.includes("User denied")) {
+                    errorReason = "Descifrado cancelado por el usuario";
+                    errorDetails = "El usuario rechazó la solicitud de descifrado en MetaMask.";
+                } else if (error?.message?.includes("decrypt")) {
+                    errorReason = "Clave de descifrado incorrecta";
+                } else if (error?.message?.includes("parse") || error?.message?.includes("JSON")) {
+                    errorReason = "Mensaje corrupto";
+                    errorDetails = "Los datos del mensaje están corruptos o tienen un formato inválido.";
+                } else {
+                    errorReason = "Error al procesar el mensaje";
+                    errorDetails = error?.message || "Ocurrió un error inesperado al intentar descifrar el mensaje.";
+                }
+                
+                return { 
+                    sender: message.from, 
+                    decryptedMessage: null,
+                    hasError: true,
+                    errorReason,
+                    errorDetails,
+                    errorStack: error?.stack,
+                    timestamp: message.t ? new Date(Number(message.t) * 1000).toISOString() : new Date().toISOString(),
+                    ipfsHash: message.ipfs
+>>>>>>> baba878322f882379f3b83ade38d2efc65e465ca
                 };
             }
         });
@@ -550,6 +596,7 @@ export default function Dashboard() {
         console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
         setDecryptedMessages(decryptedMessages);
+        setInboxCount(decryptedMessages.length);
         toast.success("Mensajes obtenidos y descifrados exitosamente");
     } catch (error: any) {
         console.error("❌ Error al obtener mensajes:", error);
@@ -588,145 +635,408 @@ export default function Dashboard() {
     return date.toLocaleDateString()
   }
 
+  const retryDecryptMessage = async (messageIndex: number) => {
+    try {
+      const message = decryptedMessages[messageIndex];
+      if (!message || !message.ipfsHash) {
+        toast.error("No se puede reintentar: datos del mensaje no disponibles");
+        return;
+      }
+
+      toast.loading("Reintentando descifrado...");
+
+      // Buscar el mensaje cifrado en localStorage
+      const storageKey = `secretdot_msg_${message.ipfsHash}`;
+      const encryptedMessage = localStorage.getItem(storageKey);
+
+      if (!encryptedMessage) {
+        toast.dismiss();
+        toast.error("Mensaje cifrado no encontrado en almacenamiento local");
+        return;
+      }
+
+      // Intentar descifrar nuevamente
+      if (!window.ethereum) {
+        toast.dismiss();
+        toast.error("MetaMask no está disponible");
+        return;
+      }
+
+      const encryptedData = JSON.parse(encryptedMessage);
+      const decryptedMessage = await window.ethereum.request({
+        method: "eth_decrypt",
+        params: [JSON.stringify(encryptedData), account],
+      });
+
+      // Actualizar el mensaje en el array
+      const updatedMessages = [...decryptedMessages];
+      updatedMessages[messageIndex] = {
+        ...message,
+        decryptedMessage,
+        hasError: false,
+        errorReason: undefined,
+        errorDetails: undefined,
+        errorStack: undefined,
+      };
+      
+      setDecryptedMessages(updatedMessages);
+      toast.dismiss();
+      toast.success("¡Mensaje descifrado exitosamente!");
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error("No se pudo descifrar el mensaje: " + (error?.message || "Error desconocido"));
+    }
+  }
+
+  const toggleErrorDetails = (messageIndex: number) => {
+    const newExpanded = new Set(expandedErrors);
+    if (newExpanded.has(messageIndex)) {
+      newExpanded.delete(messageIndex);
+    } else {
+      newExpanded.add(messageIndex);
+    }
+    setExpandedErrors(newExpanded);
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <Toaster position="top-right" />
-      <div className="container mx-auto p-6 max-w-6xl">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Shield className="h-8 w-8 text-emerald-400 animate-lock-pulse" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              {DASHBOARD_COPY.header.title}
-            </h1>
-          </div>
-          <p className="text-slate-400 font-mono text-sm">
-            {DASHBOARD_COPY.header.subtitle.split(DASHBOARD_COPY.header.subtitleHighlight)[0]}
-            <span
-              className="font-bold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent"
-              style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
-            >
-              {DASHBOARD_COPY.header.subtitleHighlight}
-            </span>
-            {DASHBOARD_COPY.header.subtitle.split(DASHBOARD_COPY.header.subtitleHighlight)[1]}
-          </p>
-          {/* Datos de la wallet */}
-          {account && (
-            <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-lg flex flex-col gap-2">
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <span className="text-xs text-emerald-400 font-mono">
-                  <b>{DASHBOARD_COPY.common.yourIdentity}:</b> {account}
-                </span>
-                {chainId && (
-                  <span className="text-xs text-cyan-400 font-mono md:ml-4">
-                    <b>{DASHBOARD_COPY.common.chainId}:</b> {chainId}
+      
+      {/* Topbar moderna con logo */}
+      <div className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-sm border-b border-slate-800/50">
+        <div className="container mx-auto px-6 py-4 max-w-6xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <LogoSecretDot 
+                size={48} 
+                className="text-emerald-400"
+              />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold tracking-tight text-slate-100">
+                  {DASHBOARD_COPY.header.title}
+                </h1>
+                <p className="text-xs font-light text-slate-500">
+                  Mensajería privada en{" "}
+                  <span className="text-emerald-400 font-medium">
+                    {DASHBOARD_COPY.header.subtitleHighlight}
                   </span>
-                )}
+                </p>
               </div>
-              <div className="text-xs text-amber-400 font-mono border-t border-slate-800 pt-2">
-                <b>{DASHBOARD_COPY.tip.label}</b> {DASHBOARD_COPY.tip.description}
+            </div>
+            
+            {account && (
+              <div className="hidden md:flex items-center gap-3">
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-xs font-light text-slate-500">Conectado</span>
+                  <span className="text-sm font-mono font-medium text-slate-300">
+                    {formatAddress(account)}
+                  </span>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center">
+                  <span className="text-xs font-bold text-slate-900">
+                    {account.slice(2, 4).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Info de conexión móvil */}
+          {account && (
+            <div className="md:hidden mt-3 pt-3 border-t border-slate-800/50">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono text-slate-400">{formatAddress(account)}</span>
+                {chainId && (
+                  <span className="text-slate-500">Chain: {chainId}</span>
+                )}
               </div>
             </div>
           )}
         </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8 max-w-6xl">
+        {/* Tip contextual */}
+        {account && (
+          <div className="mb-6 p-4 bg-slate-900/30 border border-slate-800/50 rounded-xl">
+            <p className="text-sm font-light text-slate-400">
+              <span className="text-amber-400 mr-2">{DASHBOARD_COPY.tip.label}</span>
+              {DASHBOARD_COPY.tip.description}
+            </p>
+          </div>
+        )}
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-900 border border-slate-800">
+          <TabsList className="grid w-full h-full grid-cols-2 bg-slate-900/50 border border-slate-800/50 p-1 rounded-xl mb-6">
             <TabsTrigger
               value="inbox"
-              className="data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-400 flex items-center gap-2"
+              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-slate-400 
+                bg-transparent
+                transition-all duration-200
+                data-[state=active]:bg-slate-800/80 
+                data-[state=active]:text-emerald-400
+                data-[state=inactive]:hover:bg-slate-800/40 data-[state=inactive]:hover:text-slate-200"
             >
               <Inbox className="h-4 w-4" />
-              {DASHBOARD_COPY.tabs.inbox}
+              <span className="font-medium">{DASHBOARD_COPY.tabs.inbox}</span>
+              {inboxCount > 0 && (
+                <Badge 
+                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-bold"
+                >
+                  {inboxCount}
+                </Badge>
+              )}
               {!hasPublicKey && (
-                <Badge variant="destructive" className="ml-2 h-5 text-xs">
+                <Badge variant="destructive" className="ml-1 h-5 text-xs animate-pulse">
                   !
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="sent"
-              className="text-slate-400 data-[state=active]:bg-slate-900 data-[state=active]:text-emerald-400 flex items-center gap-2"
+              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-slate-400
+                bg-transparent
+                transition-all duration-200
+                data-[state=active]:bg-slate-800/80 
+                data-[state=active]:text-cyan-400
+                data-[state=inactive]:hover:bg-slate-800/40 data-[state=inactive]:hover:text-slate-200"
             >
-              <Send className="h-4 w-4 text-slate-400" />
-              {DASHBOARD_COPY.tabs.sent}
+              <Send className="h-4 w-4" />
+              <span className="font-medium">{DASHBOARD_COPY.tabs.sent}</span>
+              {sentCount > 0 && (
+                <Badge 
+                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-bold"
+                >
+                  {sentCount}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
           {/* Inbox Tab */}
-          <TabsContent value="inbox" className="mt-6">
+          <TabsContent value="inbox" className="mt-0">
             {!hasPublicKey ? (
-              <Alert className="border-amber-500/50 bg-amber-500/10">
-                <Key className="h-4 w-4 text-amber-500 animate-lock-pulse" />
-                <AlertTitle className="text-amber-500">{DASHBOARD_COPY.encryptionKey.title}</AlertTitle>
-                <AlertDescription className="text-slate-300 mb-4">
+              <Alert className="border-amber-500/30 bg-amber-500/5 rounded-xl">
+                <Key className="h-5 w-5 text-amber-400" />
+                <AlertTitle className="text-amber-400 font-medium text-base">{DASHBOARD_COPY.encryptionKey.title}</AlertTitle>
+                <AlertDescription className="text-slate-300 mb-4 font-light">
                   {DASHBOARD_COPY.encryptionKey.description}
                 </AlertDescription>
                 <div className="flex gap-3">
-                  <Button onClick={handleMakePublicKey} className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white hover-lift">
-                    <Key className="h-4 w-4 mr-2" />
-                    {DASHBOARD_COPY.encryptionKey.button}
+                  <Button 
+                    onClick={handleMakePublicKey} 
+                    disabled={registeringKey}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 font-medium"
+                  >
+                    {registeringKey ? (
+                      <InlineLoader size={16} className="mr-2" />
+                    ) : (
+                      <Key className="h-4 w-4 mr-2" />
+                    )}
+                    {registeringKey ? "Registrando..." : DASHBOARD_COPY.encryptionKey.button}
                   </Button>
                   <Button 
                     onClick={() => setOnboardingOpen(true)} 
                     variant="outline"
-                    className="w-fit border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 hover-lift"
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-emerald-400 hover:border-emerald-500/50"
                   >
-                    <Shield className="h-4 w-4 mr-2 animate-lock-pulse" />
+                    <Shield className="h-4 w-4 mr-2" />
                     Ver guía
                   </Button>
                 </div>
               </Alert>
             ) : (
               <div className="space-y-4">
+                {/* Microcopy contextual de privacidad */}
+                <div className="flex items-center justify-between gap-4 p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl mb-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-emerald-400" />
+                    <p className="text-sm text-slate-300 font-light">
+                      Tus mensajes se descifran localmente
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-500 hidden sm:block font-light">
+                    Nadie más puede ver esto
+                  </p>
+                </div>
+
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-slate-200">
-                    {DASHBOARD_COPY.inbox.title} ({decryptedMessages.length})
+                  <h3 className="text-lg font-medium text-slate-200 flex items-center gap-2">
+                    {DASHBOARD_COPY.inbox.title}
+                    {inboxCount > 0 && (
+                      <span className="text-sm font-light text-slate-400">
+                        ({inboxCount})
+                      </span>
+                    )}
                   </h3>
                   <Button
                     onClick={fetchAndDecryptMessages}
                     disabled={loadingMessages}
                     size="sm"
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800 hover-lift"
+                    className="border-slate-700 hover:bg-slate-800 hover:text-emerald-400 hover:border-emerald-500/50 transition-all duration-200"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loadingMessages ? 'animate-spin' : ''}`} />
+                    {loadingMessages ? (
+                      <InlineLoader size={16} className="mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
                     {loadingMessages ? DASHBOARD_COPY.inbox.refreshingButton : DASHBOARD_COPY.inbox.refreshButton}
                   </Button>
                 </div>
                 {loadingMessages ? (
-                  <MessageSkeletonList count={3} />
+                  <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                    <Loader size={100} />
+                    <p className="text-slate-400 text-sm font-light">
+                      Descargando y descifrando mensajes...
+                    </p>
+                  </div>
                 ) : decryptedMessages.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 animate-fade-in-up">
-                    <Inbox className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>{DASHBOARD_COPY.inbox.emptyState}</p>
+                  <div className="text-center py-20 px-6">
+                    <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-12 max-w-md mx-auto">
+                      <Inbox className="h-16 w-16 mx-auto mb-6 text-slate-700" />
+                      <h4 className="text-lg font-medium text-slate-300 mb-2">
+                        {DASHBOARD_COPY.inbox.emptyState}
+                      </h4>
+                      <p className="text-sm text-slate-500 mb-6 font-light">
+                        Cuando recibas mensajes privados, aparecerán aquí
+                      </p>
+                      <div className="flex flex-col gap-3 text-xs text-slate-500">
+                        <div className="flex items-center gap-2 justify-center">
+                          <Shield className="h-4 w-4 text-emerald-500" />
+                          <span className="font-light">Descifrado end-to-end</span>
+                        </div>
+                        <div className="flex items-center gap-2 justify-center">
+                          <Key className="h-4 w-4 text-cyan-500" />
+                          <span className="font-light">Solo tú puedes leerlos</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   decryptedMessages.map((message, index) => (
                     <Card
                       key={index}
-                      className={`bg-slate-900/50 border-slate-800 hover:border-slate-700 hover-glow transition-all animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}`}
+                      className={`group bg-slate-900/30 border ${
+                        message.hasError 
+                          ? 'border-amber-500/20 hover:border-amber-500/40' 
+                          : 'border-slate-800/50 hover:border-emerald-500/30'
+                      } hover:bg-slate-900/50 
+                        transition-all duration-200 rounded-xl`}
                     >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <Avatar className="h-10 w-10 bg-slate-800">
-                            <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-cyan-400 text-slate-900 font-bold">
-                              <Shield className="h-3 w-3 text-black" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-slate-200">{formatAddress(message.sender)}</span>
-                              <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />
+                      <div className="flex items-start gap-3">
+                        <Avatar className={`h-10 w-10 ${
+                          message.hasError 
+                            ? 'ring-2 ring-amber-500/20' 
+                            : 'ring-2 ring-emerald-500/20'
+                        }`}>
+                          <AvatarFallback className={`${
+                            message.hasError 
+                              ? 'bg-gradient-to-br from-amber-400 to-red-400' 
+                              : 'bg-gradient-to-br from-emerald-400 to-cyan-400'
+                          } text-slate-900 font-bold text-xs`}>
+                            {message.sender.slice(2, 4).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-medium text-slate-200 text-sm ${
+                                message.hasError 
+                                  ? 'group-hover:text-amber-400' 
+                                  : 'group-hover:text-emerald-400'
+                              } transition-colors`}>
+                                {formatAddress(message.sender)}
+                              </span>
+                              {message.hasError ? (
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                              ) : (
+                                <Shield className="h-3.5 w-3.5 text-emerald-400" />
+                              )}
                             </div>
-                            <h3 className="font-medium text-white mb-1">{DASHBOARD_COPY.inbox.decryptedMessage}</h3>
-                            <p className="text-sm text-slate-400">{message.decryptedMessage}</p>
+                            <span className="text-xs text-slate-500 font-light">{formatTime(message.timestamp)}</span>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
+                          
+                          {message.hasError ? (
+                            <div className="space-y-3">
+                              {/* Error Message */}
+                              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-amber-300">
+                                      {message.errorReason}
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-1 leading-relaxed font-light">
+                                      {message.errorDetails}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => retryDecryptMessage(index)}
+                                    className="bg-amber-500 hover:bg-amber-600 text-white h-7 text-xs px-3 font-medium"
+                                  >
+                                    <RotateCcw className="h-3 w-3 mr-1" />
+                                    Reintentar descifrado
+                                  </Button>
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => toggleErrorDetails(index)}
+                                    className="h-7 text-xs px-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                                  >
+                                    {expandedErrors.has(index) ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Ocultar detalles
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        Ver detalles técnicos
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+
+                                {/* Technical details (collapsible) */}
+                                {expandedErrors.has(index) && (
+                                  <div className="mt-2 p-3 bg-slate-900/50 border border-slate-800/50 rounded-lg text-xs font-mono space-y-1">
+                                    <div className="text-slate-400 font-light">
+                                      <span className="text-slate-500">IPFS Hash:</span> {message.ipfsHash || 'N/A'}
+                                    </div>
+                                    <div className="text-slate-400 font-light">
+                                      <span className="text-slate-500">Sender:</span> {message.sender}
+                                    </div>
+                                    <div className="text-slate-400 font-light">
+                                      <span className="text-slate-500">Timestamp:</span> {message.timestamp}
+                                    </div>
+                                    {message.errorStack && (
+                                      <details className="mt-2">
+                                        <summary className="cursor-pointer text-slate-500 hover:text-slate-300 font-light">
+                                          Stack trace
+                                        </summary>
+                                        <pre className="mt-1 text-[10px] text-slate-500 whitespace-pre-wrap break-all font-light">
+                                          {message.errorStack}
+                                        </pre>
+                                      </details>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-300 leading-relaxed font-light">
+                              {message.decryptedMessage}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -738,60 +1048,98 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* Sent Tab */}
-          <TabsContent value="sent" className="mt-6">
+          <TabsContent value="sent" className="mt-0">
             <div className="space-y-4">
-              {sentMessages.map((message, index) => (
-                <Card
-                  key={message.id}
-                  className={`bg-slate-900/50 border-slate-800 hover:border-slate-700 hover-glow transition-all animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <Avatar className="h-10 w-10 bg-slate-800">
-                          <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-400 text-slate-900 font-bold">
-                            {message.to[0]}
+              {/* Microcopy contextual */}
+              <div className="flex items-center justify-between gap-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-4">
+                <div className="flex items-center gap-2">
+                  <Send className="h-4 w-4 text-cyan-400" />
+                  <p className="text-sm text-slate-300 font-light">
+                    Cifrado antes de enviar
+                  </p>
+                </div>
+                <p className="text-xs text-slate-500 hidden sm:block font-light">
+                  Privacidad garantizada
+                </p>
+              </div>
+
+              {sentMessages.length === 0 ? (
+                <div className="text-center py-20 px-6">
+                  <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-12 max-w-md mx-auto">
+                    <Send className="h-16 w-16 mx-auto mb-6 text-slate-700" />
+                    <h4 className="text-lg font-medium text-slate-300 mb-2">
+                      No has enviado mensajes aún
+                    </h4>
+                    <p className="text-sm text-slate-500 mb-6 font-light">
+                      Tus mensajes enviados aparecerán aquí
+                    </p>
+                    <div className="flex flex-col gap-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-2 justify-center">
+                        <Shield className="h-4 w-4 text-cyan-500" />
+                        <span className="font-light">Cifrado automático</span>
+                      </div>
+                      <div className="flex items-center gap-2 justify-center">
+                        <Key className="h-4 w-4 text-blue-500" />
+                        <span className="font-light">Solo el destinatario puede leer</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                sentMessages.map((message, index) => (
+                  <Card
+                    key={message.id}
+                    className="group bg-slate-900/30 border border-slate-800/50 hover:border-cyan-500/30 hover:bg-slate-900/50 
+                      transition-all duration-200 rounded-xl"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10 ring-2 ring-cyan-500/20">
+                          <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-400 text-slate-900 font-bold text-xs">
+                            {message.to.slice(2, 4).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm text-slate-400">{DASHBOARD_COPY.sent.toLabel}</span>
-                            <span className="font-semibold text-slate-200">{formatAddress(message.to)}</span>
-                            {/* <span className="font-semibold text-slate-200">{message.toAlias}</span> */}
-                            {/* <span className="text-xs font-mono text-slate-500">{formatAddress(message.to)}</span> */}
-                            {message.encrypted && <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 font-light">{DASHBOARD_COPY.sent.toLabel}</span>
+                              <span className="font-medium text-slate-200 text-sm group-hover:text-cyan-400 transition-colors">
+                                {formatAddress(message.to)}
+                              </span>
+                              {message.encrypted && <Shield className="h-3.5 w-3.5 text-emerald-400" />}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500 font-light">{formatTime(message.timestamp)}</span>
+                              <Badge
+                                variant={message.status === "delivered" ? "default" : "secondary"}
+                                className={`text-xs ${
+                                  message.status === "delivered"
+                                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                }`}
+                              >
+                                {message.status === "delivered" ? (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    {DASHBOARD_COPY.sent.status.delivered}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {DASHBOARD_COPY.sent.status.pending}
+                                  </>
+                                )}
+                              </Badge>
+                            </div>
                           </div>
-                          <h3 className="font-medium text-slate-300 mb-1">{message.subject}</h3>
-                          <p className="text-sm text-slate-400 line-clamp-2">{message.preview}</p>
+                          <h3 className="font-medium text-slate-300 mb-1.5 text-sm">{message.subject}</h3>
+                          <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed font-light">{message.preview}</p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
-                        <Badge
-                          variant={message.status === "delivered" ? "default" : "secondary"}
-                          className={`text-xs ${
-                            message.status === "delivered"
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                              : "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                          }`}
-                        >
-                          {message.status === "delivered" ? (
-                            <>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              {DASHBOARD_COPY.sent.status.delivered}
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3 w-3 mr-1" />
-                              {DASHBOARD_COPY.sent.status.pending}
-                            </>
-                          )}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -799,7 +1147,7 @@ export default function Dashboard() {
         {/* Floating Action Button */}
         <Button
           size="lg"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-110 hover:shadow-2xl hover:shadow-emerald-500/40"
+          className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-emerald-500/30"
           onClick={() => setModalOpen(true)}
           aria-label={DASHBOARD_COPY.floatingButton.ariaLabel}
         >
@@ -816,6 +1164,11 @@ export default function Dashboard() {
 
         {/* Secure Message Modal */}
         <SecureMessageModal open={modalOpen} onOpenChange={setModalOpen} />
+
+        {/* Loader de registro de clave */}
+        {registeringKey && (
+          <FullScreenLoader message="Registrando tu clave en la blockchain..." />
+        )}
       </div>
     </div>
   )

@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Shield, Wallet, Lock, ArrowRight, CheckCircle } from "lucide-react"
 import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
+import { InlineLoader, FullScreenLoader } from "./ui/loader"
 import { ASSET_HUB_CONFIG } from "../utils/ether";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -22,16 +23,22 @@ export default function LoginScreen() {
   const [chainId, setChainId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasNotified = useRef(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirige automáticamente al dashboard si hay cuenta conectada
   useEffect(() => {
     if (account && !hasNotified.current) {
+      setIsRedirecting(true);
       // Guarda la cuenta en localStorage para el dashboard
       localStorage.setItem("secretdot_account", account);
       localStorage.setItem("secretdot_chainId", chainId ? chainId.toString() : "");
       toast.success("Wallet conectada correctamente");
       hasNotified.current = true;
-      router.push("/secure-messenger");
+      
+      // Pequeño delay para asegurar que el loader se vea
+      setTimeout(() => {
+        router.push("/secure-messenger");
+      }, 500);
     }
   }, [account, chainId, router]);
 
@@ -62,11 +69,14 @@ export default function LoginScreen() {
       if (currentChainId !== ASSET_HUB_CONFIG.chainId) {
         await switchNetwork();
       }
+      
+      // NO ponemos setIsConnecting(false) aquí
+      // El loader se mantendrá visible hasta que se complete la redirección
     } catch (err) {
       setError("Error al conectar con MetaMask");
       toast.error("Error al conectar con MetaMask");
+      setIsConnecting(false);
     }
-    setIsConnecting(false);
   };
 
   const switchNetwork = async () => {
@@ -196,14 +206,18 @@ export default function LoginScreen() {
                 variant="outline"
                 className="w-full border-gray-600 bg-gray-700/50 hover:bg-gray-700 text-white h-12 text-base font-medium"
               >
-                <Wallet className="w-5 h-5 text-orange-400" />
-                {/* <img
-                  src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg"
-                  alt="MetaMask"
-                  className="w-5 h-5"
-                /> */}
-                <span>MetaMask</span>
-                <ArrowRight className="w-4 h-4" />
+                {isConnecting ? (
+                  <>
+                    <InlineLoader size={20} />
+                    <span>Conectando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-5 h-5 text-orange-400" />
+                    <span>MetaMask</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </Button>
 
               {/* Other Wallets */}
@@ -239,6 +253,13 @@ export default function LoginScreen() {
             <span className="text-purple-400 hover:text-purple-300 cursor-pointer">Contacta soporte</span>
           </p>
         </div>
+
+        {/* Loader de conexión y redirección */}
+        {(isConnecting || isRedirecting) && (
+          <FullScreenLoader 
+            message={isRedirecting ? "Redirigiendo al dashboard..." : "Conectando con tu wallet..."} 
+          />
+        )}
       </div>
     </div>
   )

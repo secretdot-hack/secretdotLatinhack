@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Dialog, DialogContent } from "./ui/dialog"
 import { Button } from "./ui/button"
-import { Key, Lock, Shield, CheckCircle, Loader2, ArrowRight, ArrowLeft } from "lucide-react"
+import { Key, Lock, Shield, CheckCircle, ArrowRight, ArrowLeft } from "lucide-react"
+import { InlineLoader } from "./ui/loader"
 
 interface OnboardingModalProps {
   open: boolean
@@ -243,7 +244,7 @@ export default function OnboardingModal({ open, onComplete, onPublishKey }: Onbo
                     </>
                   ) : isPublishing ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <InlineLoader size={16} className="mr-2" />
                       Publicando...
                     </>
                   ) : (
