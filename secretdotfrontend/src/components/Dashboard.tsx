@@ -12,6 +12,7 @@ import { Badge } from "./ui/badge"
 import { Avatar, AvatarFallback } from "./ui/avatar"
 import { MessageSkeletonList } from "./ui/message-skeleton"
 import { Loader, FullScreenLoader, InlineLoader } from "./ui/loader"
+import { LogoSecretDot } from "./ui/logo-secretdot"
 import { getContract } from "~/utils/contract"
 import { getSignedContract } from "~/utils/contract"
 import { ethers } from "ethers"
@@ -636,66 +637,88 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <Toaster position="top-right" />
-      <div className="container mx-auto p-6 max-w-6xl">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Shield className="h-8 w-8 text-emerald-400 animate-lock-pulse" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              {DASHBOARD_COPY.header.title}
-            </h1>
-          </div>
-          <p className="text-slate-400 font-mono text-sm">
-            {DASHBOARD_COPY.header.subtitle.split(DASHBOARD_COPY.header.subtitleHighlight)[0]}
-            <span
-              className="font-bold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent"
-              style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
-            >
-              {DASHBOARD_COPY.header.subtitleHighlight}
-            </span>
-            {DASHBOARD_COPY.header.subtitle.split(DASHBOARD_COPY.header.subtitleHighlight)[1]}
-          </p>
-          {/* Datos de la wallet */}
-          {account && (
-            <div className="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-lg flex flex-col gap-2">
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <span className="text-xs text-emerald-400 font-mono">
-                  <b>{DASHBOARD_COPY.common.yourIdentity}:</b> {account}
-                </span>
-                {chainId && (
-                  <span className="text-xs text-cyan-400 font-mono md:ml-4">
-                    <b>{DASHBOARD_COPY.common.chainId}:</b> {chainId}
+      
+      {/* Topbar moderna con logo */}
+      <div className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-sm border-b border-slate-800/50">
+        <div className="container mx-auto px-6 py-4 max-w-6xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <LogoSecretDot 
+                size={48} 
+                className="text-emerald-400"
+              />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold tracking-tight text-slate-100">
+                  {DASHBOARD_COPY.header.title}
+                </h1>
+                <p className="text-xs font-light text-slate-500">
+                  Mensajería privada en{" "}
+                  <span className="text-emerald-400 font-medium">
+                    {DASHBOARD_COPY.header.subtitleHighlight}
                   </span>
-                )}
+                </p>
               </div>
-              <div className="text-xs text-amber-400 font-mono border-t border-slate-800 pt-2">
-                <b>{DASHBOARD_COPY.tip.label}</b> {DASHBOARD_COPY.tip.description}
+            </div>
+            
+            {account && (
+              <div className="hidden md:flex items-center gap-3">
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-xs font-light text-slate-500">Conectado</span>
+                  <span className="text-sm font-mono font-medium text-slate-300">
+                    {formatAddress(account)}
+                  </span>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center">
+                  <span className="text-xs font-bold text-slate-900">
+                    {account.slice(2, 4).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Info de conexión móvil */}
+          {account && (
+            <div className="md:hidden mt-3 pt-3 border-t border-slate-800/50">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono text-slate-400">{formatAddress(account)}</span>
+                {chainId && (
+                  <span className="text-slate-500">Chain: {chainId}</span>
+                )}
               </div>
             </div>
           )}
         </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8 max-w-6xl">
+        {/* Tip contextual */}
+        {account && (
+          <div className="mb-6 p-4 bg-slate-900/30 border border-slate-800/50 rounded-xl">
+            <p className="text-sm font-light text-slate-400">
+              <span className="text-amber-400 mr-2">{DASHBOARD_COPY.tip.label}</span>
+              {DASHBOARD_COPY.tip.description}
+            </p>
+          </div>
+        )}
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-blue-900 border border-slate-800 p-1.5 rounded-lg">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-900/50 border border-slate-800/50 p-1 rounded-xl mb-6">
             <TabsTrigger
               value="inbox"
-              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-md text-slate-400 
-                bg-transparent border border-transparent
-                transition-all duration-300
-                data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500/20 data-[state=active]:to-cyan-500/20 
-                data-[state=active]:text-emerald-400 data-[state=active]:border-emerald-500/50
-                data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/20
-                data-[state=inactive]:hover:bg-slate-800 data-[state=inactive]:hover:text-slate-200 
-                data-[state=inactive]:hover:border-slate-700
-                data-[state=active]:hover:from-emerald-500/30 data-[state=active]:hover:to-cyan-500/30"
+              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-slate-400 
+                bg-transparent
+                transition-all duration-200
+                data-[state=active]:bg-slate-800/80 
+                data-[state=active]:text-emerald-400
+                data-[state=inactive]:hover:bg-slate-800/40 data-[state=inactive]:hover:text-slate-200"
             >
               <Inbox className="h-4 w-4" />
               <span className="font-medium">{DASHBOARD_COPY.tabs.inbox}</span>
               {inboxCount > 0 && (
                 <Badge 
-                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 
-                    animate-[scale-in_0.3s_ease-out] font-bold"
+                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-bold"
                 >
                   {inboxCount}
                 </Badge>
@@ -708,22 +731,18 @@ export default function Dashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="sent"
-              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-md text-slate-400
-                bg-transparent border border-transparent
-                transition-all duration-300
-                data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500/20 data-[state=active]:to-blue-500/20 
-                data-[state=active]:text-cyan-400 data-[state=active]:border-cyan-500/50
-                data-[state=active]:shadow-lg data-[state=active]:shadow-cyan-500/20
-                data-[state=inactive]:hover:bg-slate-800 data-[state=inactive]:hover:text-slate-200 
-                data-[state=inactive]:hover:border-slate-700
-                data-[state=active]:hover:from-cyan-500/30 data-[state=active]:hover:to-blue-500/30"
+              className="relative flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-slate-400
+                bg-transparent
+                transition-all duration-200
+                data-[state=active]:bg-slate-800/80 
+                data-[state=active]:text-cyan-400
+                data-[state=inactive]:hover:bg-slate-800/40 data-[state=inactive]:hover:text-slate-200"
             >
               <Send className="h-4 w-4" />
               <span className="font-medium">{DASHBOARD_COPY.tabs.sent}</span>
               {sentCount > 0 && (
                 <Badge 
-                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-cyan-500/20 text-cyan-400 border-cyan-500/30 
-                    animate-[scale-in_0.3s_ease-out] font-bold"
+                  className="ml-1 h-5 min-w-[20px] px-1.5 bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-bold"
                 >
                   {sentCount}
                 </Badge>
@@ -732,19 +751,19 @@ export default function Dashboard() {
           </TabsList>
 
           {/* Inbox Tab */}
-          <TabsContent value="inbox" className="mt-6">
+          <TabsContent value="inbox" className="mt-0">
             {!hasPublicKey ? (
-              <Alert className="border-amber-500/50 bg-amber-500/10">
-                <Key className="h-4 w-4 text-amber-500 animate-lock-pulse" />
-                <AlertTitle className="text-amber-500">{DASHBOARD_COPY.encryptionKey.title}</AlertTitle>
-                <AlertDescription className="text-slate-300 mb-4">
+              <Alert className="border-amber-500/30 bg-amber-500/5 rounded-xl">
+                <Key className="h-5 w-5 text-amber-400" />
+                <AlertTitle className="text-amber-400 font-medium text-base">{DASHBOARD_COPY.encryptionKey.title}</AlertTitle>
+                <AlertDescription className="text-slate-300 mb-4 font-light">
                   {DASHBOARD_COPY.encryptionKey.description}
                 </AlertDescription>
                 <div className="flex gap-3">
                   <Button 
                     onClick={handleMakePublicKey} 
                     disabled={registeringKey}
-                    className="w-fit bg-emerald-600 hover:bg-emerald-700 text-white hover-lift disabled:opacity-50"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white disabled:opacity-50 font-medium"
                   >
                     {registeringKey ? (
                       <InlineLoader size={16} className="mr-2" />
@@ -756,9 +775,9 @@ export default function Dashboard() {
                   <Button 
                     onClick={() => setOnboardingOpen(true)} 
                     variant="outline"
-                    className="w-fit border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 hover-lift"
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-emerald-400 hover:border-emerald-500/50"
                   >
-                    <Shield className="h-4 w-4 mr-2 animate-lock-pulse" />
+                    <Shield className="h-4 w-4 mr-2" />
                     Ver guía
                   </Button>
                 </div>
@@ -766,23 +785,23 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {/* Microcopy contextual de privacidad */}
-                <div className="flex items-center justify-between gap-4 p-3 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-lg mb-4 animate-fade-in-up">
+                <div className="flex items-center justify-between gap-4 p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl mb-4">
                   <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-emerald-400 animate-lock-pulse" />
-                    <p className="text-sm text-emerald-300 font-medium">
+                    <Shield className="h-4 w-4 text-emerald-400" />
+                    <p className="text-sm text-slate-300 font-light">
                       Tus mensajes se descifran localmente
                     </p>
                   </div>
-                  <p className="text-xs text-slate-400 hidden sm:block">
+                  <p className="text-xs text-slate-500 hidden sm:block font-light">
                     Nadie más puede ver esto
                   </p>
                 </div>
 
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                  <h3 className="text-lg font-medium text-slate-200 flex items-center gap-2">
                     {DASHBOARD_COPY.inbox.title}
                     {inboxCount > 0 && (
-                      <span className="text-sm font-normal text-slate-400">
+                      <span className="text-sm font-light text-slate-400">
                         ({inboxCount})
                       </span>
                     )}
@@ -792,7 +811,7 @@ export default function Dashboard() {
                     disabled={loadingMessages}
                     size="sm"
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800 hover-lift transition-all duration-200 hover:border-emerald-500/50"
+                    className="border-slate-700 hover:bg-slate-800 hover:text-emerald-400 hover:border-emerald-500/50 transition-all duration-200"
                   >
                     {loadingMessages ? (
                       <InlineLoader size={16} className="mr-2" />
@@ -803,30 +822,30 @@ export default function Dashboard() {
                   </Button>
                 </div>
                 {loadingMessages ? (
-                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="flex flex-col items-center justify-center py-16 space-y-4">
                     <Loader size={100} />
-                    <p className="text-slate-400 text-sm font-mono animate-pulse">
+                    <p className="text-slate-400 text-sm font-light">
                       Descargando y descifrando mensajes...
                     </p>
                   </div>
                 ) : decryptedMessages.length === 0 ? (
-                  <div className="text-center py-16 px-6 animate-fade-in-up">
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 max-w-md mx-auto">
-                      <Inbox className="h-16 w-16 mx-auto mb-4 text-slate-600" />
-                      <h4 className="text-lg font-semibold text-slate-300 mb-2">
+                  <div className="text-center py-20 px-6">
+                    <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-12 max-w-md mx-auto">
+                      <Inbox className="h-16 w-16 mx-auto mb-6 text-slate-700" />
+                      <h4 className="text-lg font-medium text-slate-300 mb-2">
                         {DASHBOARD_COPY.inbox.emptyState}
                       </h4>
-                      <p className="text-sm text-slate-400 mb-4">
+                      <p className="text-sm text-slate-500 mb-6 font-light">
                         Cuando recibas mensajes privados, aparecerán aquí
                       </p>
-                      <div className="flex flex-col gap-2 text-xs text-slate-500">
+                      <div className="flex flex-col gap-3 text-xs text-slate-500">
                         <div className="flex items-center gap-2 justify-center">
-                          <Shield className="h-3 w-3 text-emerald-500" />
-                          <span>Descifrado end-to-end</span>
+                          <Shield className="h-4 w-4 text-emerald-500" />
+                          <span className="font-light">Descifrado end-to-end</span>
                         </div>
                         <div className="flex items-center gap-2 justify-center">
-                          <Key className="h-3 w-3 text-cyan-500" />
-                          <span>Solo tú puedes leerlos</span>
+                          <Key className="h-4 w-4 text-cyan-500" />
+                          <span className="font-light">Solo tú puedes leerlos</span>
                         </div>
                       </div>
                     </div>
@@ -835,25 +854,20 @@ export default function Dashboard() {
                   decryptedMessages.map((message, index) => (
                     <Card
                       key={index}
-                      className={`group bg-slate-900/50 border-slate-800 ${
+                      className={`group bg-slate-900/30 border ${
                         message.hasError 
-                          ? 'hover:border-amber-500/30 border-amber-500/20' 
-                          : 'hover:border-emerald-500/30'
-                      } hover:bg-slate-900/70 
-                        transition-all duration-300 animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}
-                        hover:shadow-lg ${
-                          message.hasError 
-                            ? 'hover:shadow-amber-500/10' 
-                            : 'hover:shadow-emerald-500/10'
-                        } hover:-translate-y-0.5`}
+                          ? 'border-amber-500/20 hover:border-amber-500/40' 
+                          : 'border-slate-800/50 hover:border-emerald-500/30'
+                      } hover:bg-slate-900/50 
+                        transition-all duration-200 rounded-xl`}
                     >
-                    <CardContent className="p-3.5">
+                    <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Avatar className={`h-9 w-9 bg-slate-800 ring-2 ring-slate-800 ${
+                        <Avatar className={`h-10 w-10 ${
                           message.hasError 
-                            ? 'group-hover:ring-amber-500/30' 
-                            : 'group-hover:ring-emerald-500/30'
-                        } transition-all`}>
+                            ? 'ring-2 ring-amber-500/20' 
+                            : 'ring-2 ring-emerald-500/20'
+                        }`}>
                           <AvatarFallback className={`${
                             message.hasError 
                               ? 'bg-gradient-to-br from-amber-400 to-red-400' 
@@ -863,9 +877,9 @@ export default function Dashboard() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <span className={`font-semibold text-slate-200 text-sm ${
+                              <span className={`font-medium text-slate-200 text-sm ${
                                 message.hasError 
                                   ? 'group-hover:text-amber-400' 
                                   : 'group-hover:text-emerald-400'
@@ -873,36 +887,36 @@ export default function Dashboard() {
                                 {formatAddress(message.sender)}
                               </span>
                               {message.hasError ? (
-                                <AlertTriangle className="h-3 w-3 text-amber-400 animate-pulse" />
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
                               ) : (
-                                <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />
+                                <Shield className="h-3.5 w-3.5 text-emerald-400" />
                               )}
                             </div>
-                            <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
+                            <span className="text-xs text-slate-500 font-light">{formatTime(message.timestamp)}</span>
                           </div>
                           
                           {message.hasError ? (
                             <div className="space-y-3">
                               {/* Error Message */}
-                              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 space-y-2">
+                              <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 space-y-2">
                                 <div className="flex items-start gap-2">
                                   <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-amber-300">
+                                    <p className="text-sm font-medium text-amber-300">
                                       {message.errorReason}
                                     </p>
-                                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                                    <p className="text-xs text-slate-400 mt-1 leading-relaxed font-light">
                                       {message.errorDetails}
                                     </p>
                                   </div>
                                 </div>
                                 
                                 {/* Tutorial tip */}
-                                <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 mt-2">
+                                <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 mt-2">
                                   <div className="flex items-start gap-2">
                                     <Key className="h-3 w-3 text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <p className="text-xs text-blue-300 leading-relaxed">
-                                      <span className="font-semibold">💡 Tip:</span> Esto puede ocurrir si enviaste el mensaje a tu propia dirección sin publicar tu clave pública primero.
+                                    <p className="text-xs text-blue-300 leading-relaxed font-light">
+                                      <span className="font-medium">💡 Tip:</span> Esto puede ocurrir si enviaste el mensaje a tu propia dirección sin publicar tu clave pública primero.
                                     </p>
                                   </div>
                                 </div>
@@ -912,7 +926,7 @@ export default function Dashboard() {
                                   <Button
                                     size="sm"
                                     onClick={() => retryDecryptMessage(index)}
-                                    className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs px-3"
+                                    className="bg-amber-500 hover:bg-amber-600 text-white h-7 text-xs px-3 font-medium"
                                   >
                                     <RotateCcw className="h-3 w-3 mr-1" />
                                     Reintentar descifrado
@@ -922,7 +936,7 @@ export default function Dashboard() {
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => toggleErrorDetails(index)}
-                                    className="h-7 text-xs px-2 text-slate-400 hover:text-slate-200"
+                                    className="h-7 text-xs px-2 text-slate-500 hover:text-slate-300 hover:bg-slate-800"
                                   >
                                     {expandedErrors.has(index) ? (
                                       <>
@@ -940,22 +954,22 @@ export default function Dashboard() {
 
                                 {/* Technical details (collapsible) */}
                                 {expandedErrors.has(index) && (
-                                  <div className="mt-2 p-2 bg-slate-950/50 border border-slate-700 rounded text-xs font-mono space-y-1 animate-fade-in-up">
-                                    <div className="text-slate-400">
+                                  <div className="mt-2 p-3 bg-slate-900/50 border border-slate-800/50 rounded-lg text-xs font-mono space-y-1">
+                                    <div className="text-slate-400 font-light">
                                       <span className="text-slate-500">IPFS Hash:</span> {message.ipfsHash || 'N/A'}
                                     </div>
-                                    <div className="text-slate-400">
+                                    <div className="text-slate-400 font-light">
                                       <span className="text-slate-500">Sender:</span> {message.sender}
                                     </div>
-                                    <div className="text-slate-400">
+                                    <div className="text-slate-400 font-light">
                                       <span className="text-slate-500">Timestamp:</span> {message.timestamp}
                                     </div>
                                     {message.errorStack && (
                                       <details className="mt-2">
-                                        <summary className="cursor-pointer text-slate-500 hover:text-slate-300">
+                                        <summary className="cursor-pointer text-slate-500 hover:text-slate-300 font-light">
                                           Stack trace
                                         </summary>
-                                        <pre className="mt-1 text-[10px] text-slate-500 whitespace-pre-wrap break-all">
+                                        <pre className="mt-1 text-[10px] text-slate-500 whitespace-pre-wrap break-all font-light">
                                           {message.errorStack}
                                         </pre>
                                       </details>
@@ -965,7 +979,7 @@ export default function Dashboard() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-sm text-slate-300 leading-relaxed">
+                            <p className="text-sm text-slate-300 leading-relaxed font-light">
                               {message.decryptedMessage}
                             </p>
                           )}
@@ -980,39 +994,39 @@ export default function Dashboard() {
           </TabsContent>
 
           {/* Sent Tab */}
-          <TabsContent value="sent" className="mt-6">
+          <TabsContent value="sent" className="mt-0">
             <div className="space-y-4">
               {/* Microcopy contextual */}
-              <div className="flex items-center justify-between gap-4 p-3 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg mb-4 animate-fade-in-up">
+              <div className="flex items-center justify-between gap-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl mb-4">
                 <div className="flex items-center gap-2">
                   <Send className="h-4 w-4 text-cyan-400" />
-                  <p className="text-sm text-cyan-300 font-medium">
+                  <p className="text-sm text-slate-300 font-light">
                     Cifrado antes de enviar
                   </p>
                 </div>
-                <p className="text-xs text-slate-400 hidden sm:block">
+                <p className="text-xs text-slate-500 hidden sm:block font-light">
                   Privacidad garantizada
                 </p>
               </div>
 
               {sentMessages.length === 0 ? (
-                <div className="text-center py-16 px-6 animate-fade-in-up">
-                  <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8 max-w-md mx-auto">
-                    <Send className="h-16 w-16 mx-auto mb-4 text-slate-600" />
-                    <h4 className="text-lg font-semibold text-slate-300 mb-2">
+                <div className="text-center py-20 px-6">
+                  <div className="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-12 max-w-md mx-auto">
+                    <Send className="h-16 w-16 mx-auto mb-6 text-slate-700" />
+                    <h4 className="text-lg font-medium text-slate-300 mb-2">
                       No has enviado mensajes aún
                     </h4>
-                    <p className="text-sm text-slate-400 mb-4">
+                    <p className="text-sm text-slate-500 mb-6 font-light">
                       Tus mensajes enviados aparecerán aquí
                     </p>
-                    <div className="flex flex-col gap-2 text-xs text-slate-500">
+                    <div className="flex flex-col gap-3 text-xs text-slate-500">
                       <div className="flex items-center gap-2 justify-center">
-                        <Shield className="h-3 w-3 text-cyan-500" />
-                        <span>Cifrado automático</span>
+                        <Shield className="h-4 w-4 text-cyan-500" />
+                        <span className="font-light">Cifrado automático</span>
                       </div>
                       <div className="flex items-center gap-2 justify-center">
-                        <Key className="h-3 w-3 text-blue-500" />
-                        <span>Solo el destinatario puede leer</span>
+                        <Key className="h-4 w-4 text-blue-500" />
+                        <span className="font-light">Solo el destinatario puede leer</span>
                       </div>
                     </div>
                   </div>
@@ -1021,34 +1035,33 @@ export default function Dashboard() {
                 sentMessages.map((message, index) => (
                   <Card
                     key={message.id}
-                    className={`group bg-slate-900/50 border-slate-800 hover:border-cyan-500/30 hover:bg-slate-900/70 
-                      transition-all duration-300 animate-fade-in-up stagger-item-${Math.min(index + 1, 10)}
-                      hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-0.5`}
+                    className="group bg-slate-900/30 border border-slate-800/50 hover:border-cyan-500/30 hover:bg-slate-900/50 
+                      transition-all duration-200 rounded-xl"
                   >
-                    <CardContent className="p-3.5">
+                    <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <Avatar className="h-9 w-9 bg-slate-800 ring-2 ring-slate-800 group-hover:ring-cyan-500/30 transition-all">
+                        <Avatar className="h-10 w-10 ring-2 ring-cyan-500/20">
                           <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-blue-400 text-slate-900 font-bold text-xs">
                             {message.to.slice(2, 4).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-500">{DASHBOARD_COPY.sent.toLabel}</span>
-                              <span className="font-semibold text-slate-200 text-sm group-hover:text-cyan-400 transition-colors">
+                              <span className="text-xs text-slate-500 font-light">{DASHBOARD_COPY.sent.toLabel}</span>
+                              <span className="font-medium text-slate-200 text-sm group-hover:text-cyan-400 transition-colors">
                                 {formatAddress(message.to)}
                               </span>
-                              {message.encrypted && <Shield className="h-3 w-3 text-emerald-400 animate-lock-pulse" />}
+                              {message.encrypted && <Shield className="h-3.5 w-3.5 text-emerald-400" />}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-500 font-mono">{formatTime(message.timestamp)}</span>
+                              <span className="text-xs text-slate-500 font-light">{formatTime(message.timestamp)}</span>
                               <Badge
                                 variant={message.status === "delivered" ? "default" : "secondary"}
-                                className={`text-xs transition-all ${
+                                className={`text-xs ${
                                   message.status === "delivered"
                                     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse"
+                                    : "bg-amber-500/20 text-amber-400 border-amber-500/30"
                                 }`}
                               >
                                 {message.status === "delivered" ? (
@@ -1065,8 +1078,8 @@ export default function Dashboard() {
                               </Badge>
                             </div>
                           </div>
-                          <h3 className="font-medium text-slate-300 mb-1 text-sm">{message.subject}</h3>
-                          <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">{message.preview}</p>
+                          <h3 className="font-medium text-slate-300 mb-1.5 text-sm">{message.subject}</h3>
+                          <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed font-light">{message.preview}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -1080,7 +1093,7 @@ export default function Dashboard() {
         {/* Floating Action Button */}
         <Button
           size="lg"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-110 hover:shadow-2xl hover:shadow-emerald-500/40"
+          className="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-emerald-500/30"
           onClick={() => setModalOpen(true)}
           aria-label={DASHBOARD_COPY.floatingButton.ariaLabel}
         >
