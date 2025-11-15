@@ -1,12 +1,5 @@
 "use client"
 
-// Add ethereum type to window
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation";
 import { Shield, Wallet, Lock, ArrowRight, CheckCircle } from "lucide-react"
@@ -81,6 +74,9 @@ export default function LoginScreen() {
 
   const switchNetwork = async () => {
     try {
+      if (!window.ethereum) {
+        throw new Error("Ethereum provider not available");
+      }
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: `0x${ASSET_HUB_CONFIG.chainId.toString(16)}` }],
@@ -89,6 +85,9 @@ export default function LoginScreen() {
     } catch (switchError: any) {
       if (switchError.code === 4902) {
         try {
+          if (!window.ethereum) {
+            throw new Error("Ethereum provider not available");
+          }
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [
