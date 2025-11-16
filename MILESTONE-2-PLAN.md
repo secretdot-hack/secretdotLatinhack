@@ -64,13 +64,13 @@ SecretDot will allow users to send and receive encrypted messages and files dire
 
 ### Team Breakdown
 
-**Ignacio Wuilloud – Blockchain & Smart Contracts** | ~10 hrs/week  
+**Ignacio Wuilloud – Blockchain & Smart Contracts** | ~20 hrs/week  
 - Owns: Arkiv integration, contract upgrades, multichain indexing logic.
 
-**Nicolas Bustelo – Frontend & Encryption Engineering** | ~12 hrs/week  
+**Nicolas Bustelo – Frontend & Encryption Engineering** | ~20 hrs/week  
 - Owns: UX/UI, client-side cryptography, file-type support, freemium onboarding flow.
 
-**Juan Pablo Massuet – Integrations & Infrastructure** | ~10 hrs/week  
+**Juan Pablo Massuet – Integrations & Infrastructure** | ~20 hrs/week  
 - Owns: Multi-wallet integration, connectivity, testing across chains/devices.
 
 ---
