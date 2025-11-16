@@ -52,6 +52,37 @@ SecretDot permite a cualquier usuario compartir información confidencial utiliz
 
 ---
 
+## 🗺️ Roadmap
+
+### 📍 Etapa 1 — Almacenamiento seguro
+Implementación del almacenamiento de datos encriptados en **Arkiv**, permitiendo guardar información sensible de manera más confiable y persistente.  
+
+Esta etapa agrega una capa extra de seguridad y disponibilidad, complementando el uso actual de IPFS.
+
+---
+
+
+### 📍 Etapa 2 — Compatibilidad de archivos
+Incorporación de soporte para **múltiples tipos de archivos**, permitiendo que SecretDot pueda manejar desde documentos hasta imágenes o archivos estructurados.  
+
+Esto mejora la experiencia del usuario y amplía los casos de uso de la plataforma.
+
+---
+
+### 📍 Etapa 3 — Crecimiento del producto
+Implementación del **modelo de negocio**, definiendo planes, límites y funcionalidades avanzadas para usuarios que requieran mayor capacidad o servicios premium.  
+
+Esta etapa habilita la sostenibilidad del proyecto y permite que SecretDot evolucione como producto real.
+
+--- 
+
+### 📍 Etapa 4 — Comunicación al usuario
+Integración de **notificaciones push** para avisar al usuario cuando recibe un nuevo mensaje seguro o cuando un destinatario accede a la información.  
+
+Esto vuelve el flujo más dinámico y aporta inmediatez en las interacciones dentro de la plataforma.
+
+---
+
 ## 🛠️ Tecnologías Usadas
 
 - **Polkadot** – para contratos inteligentes e interoperabilidad entre blockchains.
