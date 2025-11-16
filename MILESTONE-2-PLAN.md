@@ -2,7 +2,7 @@
 
 **Team:** Nicolás Bustelo — Ignacio Wuilloud — Juan Pablo Massuet  
 **Track:** [x] SHIP-A-TON  [ ] IDEA-TON  
-**Date:** ___________________
+**Date:** 16th November 2025
 
 ---
 
@@ -42,12 +42,12 @@ SecretDot will allow users to send and receive encrypted messages and files dire
 **Week 1-2:**
 - Feature: Migration from IPFS to **Arkiv**, a decentralized database built on Polkadot.  
 - Why it matters: Ensures fully decentralized, scalable, persistent, and native Polkadot storage that aligns with SecretDot’s vision.  
-- Who builds it: Nicolás Bustelo
+- Who builds it: Ignacio Wuilloud
 
 **Week 2-3:**
 - Feature: Support for multiple file types (documents, images, PDFs, structured files).  
 - Why it matters: Expands SecretDot beyond text messages, enabling real-world professional usage.  
-- Who builds it: Ignacio Wuilloud
+- Who builds it: Nicolas Bustelo
 
 **Week 3-4:**
 - Feature: Integration with **multiple wallets** beyond Polkadot.js (Talisman, SubWallet, Nova Wallet, etc.).  
@@ -63,10 +63,10 @@ SecretDot will allow users to send and receive encrypted messages and files dire
 
 ### Team Breakdown
 
-**Nicolás Bustelo – Blockchain & Smart Contracts** | ~10 hrs/week  
+**Ignacio Wuilloud – Blockchain & Smart Contracts** | ~10 hrs/week  
 - Owns: Arkiv integration, contract upgrades, multichain indexing logic.
 
-**Ignacio Wuilloud – Frontend & Encryption Engineering** | ~12 hrs/week  
+**Nicolas Bustelo – Frontend & Encryption Engineering** | ~12 hrs/week  
 - Owns: UX/UI, client-side cryptography, file-type support, freemium onboarding flow.
 
 **Juan Pablo Massuet – Integrations & Infrastructure** | ~10 hrs/week  
