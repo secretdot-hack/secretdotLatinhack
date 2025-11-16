@@ -136,128 +136,90 @@ export default function LoginScreen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
       <Toaster position="top-right" />
-      <div className="w-full max-w-md mx-auto">
-        {/* Estado de conexión */}
-        {/* {account && (
-          <div className="mb-4 p-4 bg-gray-800 border border-gray-700 rounded-lg flex flex-col items-center">
-            <span className="text-green-400 text-xs mb-1">Wallet conectada</span>
-            <span className="text-white font-mono text-sm mb-2">
-              {account.substring(0, 6)}...{account.substring(account.length - 4)}
-            </span>
-            <button
-              onClick={disconnectWallet}
-              className="text-xs text-red-400 hover:underline"
-            >
-              Desconectar
-            </button>
+      <div className="w-full max-w-lg mx-auto">
+        {/* Compact Header - Logo on top */}
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center justify-center mb-3">
+            <PolkadotLoader size={64} />
           </div>
-        )} */}
-        {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <PolkadotLoader size={80} />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">SecretDot</h1>
-          <p className="text-gray-400 text-sm">Powered by <span
+          <h1 className="text-2xl font-bold text-white">SecretDot</h1>
+          <p className="text-gray-400 text-xs mt-1">Powered by <span
               className="font-bold bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 bg-clip-text text-transparent"
               style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
             >
               Polkadot
             </span></p>
         </div>
-        {/* Main Card */}
+
+        {/* Main Card - Ultra Compact */}
         <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
-          <CardContent className="p-8">
-            {/* Value Proposition */}
-            <div className="text-center mb-8">
-              <h2 className="text-xl font-semibold text-white mb-3">
-                Comparte datos sensibles de forma segura y simple
+          <CardContent className="p-6 md:p-8">
+            {/* Hero - 2 líneas máximo */}
+            <div className="text-center mb-5">
+              <h2 className="text-lg font-bold text-white">
+                Comparte datos sensibles de forma segura
               </h2>
-              <p className="text-gray-300 text-sm leading-relaxed">
-                Utiliza la tecnología blockchain de Polkadot para compartir información confidencial con máxima
-                seguridad y transparencia.
+              <p className="text-xs text-gray-400 mt-1">
+                Blockchain de Polkadot con encriptación E2E
               </p>
             </div>
 
-            {/* Features */}
-            <div className="space-y-3 mb-8">
-              <div className="flex items-center gap-3 text-sm">
+            {/* Features Horizontal */}
+            <div className="grid grid-cols-3 gap-3 mb-6 md:gap-4">
+              <div className="flex flex-col items-center gap-1 text-center">
                 <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span className="text-gray-300">Encriptación de extremo a extremo</span>
+                <span className="text-xs text-gray-300 leading-tight">E2E Encryption</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex flex-col items-center gap-1 text-center">
                 <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span className="text-gray-300">Verificación en blockchain</span>
+                <span className="text-xs text-gray-300 leading-tight">Blockchain Verified</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex flex-col items-center gap-1 text-center">
                 <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span className="text-gray-300">Control total de tus datos</span>
+                <span className="text-xs text-gray-300 leading-tight">Full Control</span>
               </div>
             </div>
 
-            {/* Wallet Connection */}
-            <div className="space-y-4">
-              <h3 className="text-white font-medium text-center mb-4">Conecta tu wallet para comenzar</h3>
+            {/* Dominant CTA */}
+            <Button
+              onClick={() => handleConnectWallet("MetaMask")}
+              disabled={isConnecting}
+              variant="outline"
+              className="w-full border-purple-500 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-semibold h-11 text-sm transition-all duration-200"
+            >
+              {isConnecting ? (
+                <>
+                  <InlineLoader size={18} />
+                  <span>Conectando...</span>
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-4 h-4" />
+                  <span>Conectar Wallet</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </Button>
 
-              {/* MetaMask Wallet */}
-              <Button
-                onClick={() => handleConnectWallet("MetaMask")}
-                disabled={isConnecting}
-                variant="outline"
-                className="w-full border-gray-600 bg-gray-700/50 hover:bg-gray-700 text-white h-12 text-base font-medium"
-              >
-                {isConnecting ? (
-                  <>
-                    <InlineLoader size={20} />
-                    <span>Conectando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-5 h-5 text-orange-400" />
-                    <span>MetaMask</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
-
-              {/* Other Wallets */}
-              <Button
-                onClick={() => handleConnectWallet("Other")}
-                disabled={isConnecting}
-                variant="ghost"
-                className="w-full text-gray-400 hover:text-white hover:bg-gray-700/50 h-10"
-              >
-                <span className="text-sm">Otras wallets compatibles</span>
-              </Button>
-            </div>
-
-            {/* Security Note */}
-            <div className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600/50">
-              <div className="flex items-start gap-3">
-                <Lock className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs text-gray-300 leading-relaxed">
-                    Tu wallet permanece bajo tu control. Nunca almacenamos tus claves privadas ni tenemos acceso a tus
-                    fondos.
-                  </p>
-                </div>
-              </div>
+            {/* Minimal Security Note */}
+            <div className="mt-4 p-3 bg-blue-900/20 rounded-lg border border-blue-600/30 flex gap-2">
+              <Lock className="w-3 h-3 text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-gray-300">
+                Tus claves privadas siempre bajo tu control.
+              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center mt-6">
-          <p className="text-gray-500 text-xs">
-            ¿Necesitas ayuda?{" "}
-            <span className="text-purple-400 hover:text-purple-300 cursor-pointer">Contacta soporte</span>
-          </p>
-        </div>
+        {/* Footer - Ultra Minimal */}
+        <p className="text-center text-gray-500 text-xs mt-4">
+          <span className="text-purple-400 hover:text-purple-300 cursor-pointer">Soporte</span>
+        </p>
 
         {/* Loader de conexión y redirección */}
         {(isConnecting || isRedirecting) && (
           <FullScreenLoader 
-            message={isRedirecting ? "Redirigiendo al dashboard..." : "Conectando con tu wallet..."} 
+            message={isRedirecting ? "Redirigiendo..." : "Conectando..."} 
           />
         )}
       </div>
