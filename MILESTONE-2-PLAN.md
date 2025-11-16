@@ -80,11 +80,13 @@ SecretDot will allow users to send and receive encrypted messages and files dire
 **Areas where we need support:**
 - Scaling decentralized storage solutions with Arkiv.
 - Designing a strong product-led freemium model.
+- Marketing
 
 **Specific expertise we're looking for:**
 - Polkadot smart contract performance optimization.
 - Web3 security audits for encryption + wallet interactions.
 - Growth hacking and user acquisition for privacy tools.
+- Web3 Marketing
 
 ---
 
