@@ -9,6 +9,7 @@
 ## 📍 WHERE WE ARE NOW
 
 **What we built/validated this weekend:**
+- An app that enables users to securely exchange encrypted messages and files using their blockchain wallets, with full decentralization and zero reliance on servers or intermediaries.
 - Functional decentralized messaging flow (Inbox / Sent) using wallet-based authentication.
 - Client-side encryption + decryption working end-to-end.
 - Smart-contract based message publishing on Polkadot.
@@ -50,7 +51,7 @@ SecretDot will allow users to send and receive encrypted messages and files dire
 - Who builds it: Nicolas Bustelo
 
 **Week 3-4:**
-- Feature: Integration with **multiple wallets** beyond Polkadot.js (Talisman, SubWallet, Nova Wallet, etc.).  
+- Feature: Integration with **multiple wallets** (Talisman, SubWallet, Nova Wallet, etc.).  
 - Why it matters: Lowers friction, expands accessibility, and supports multichain users.  
 - Who builds it: Juan Pablo Massuet
 
